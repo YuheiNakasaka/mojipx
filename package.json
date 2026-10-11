@@ -14,6 +14,14 @@
   ],
   "author": "Yuhei Nakasaka",
   "license": "MIT",
+  "homepage": "https://github.com/YuheiNakasaka/mojipx#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YuheiNakasaka/mojipx.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YuheiNakasaka/mojipx/issues"
+  },
   "type": "module",
   "sideEffects": [
     "**/*.css"
