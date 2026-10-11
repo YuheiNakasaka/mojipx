@@ -1,0 +1,229 @@
+/* エンジンの CSS（docs/design.md#持つもの）。ゲームの CSS より先に読み込む。
+   ここは並べ方と動きだけを決め、色・文字・余白はゲームの CSS が決める。
+   枠の絵は installFrames が --frame-* に入れ、ゲームの CSS が --px-frame・--px-fill に割り当てる（docs/design.md#窓の枠）。 */
+
+/* ---- 土台 ---- */
+
+/* 指で押したときの色の膜と、横向きにしたときの文字の拡大を止める。ドット絵の色と大きさを、端末に変えさせないため */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* ---- ドット絵 ---- */
+
+.px-sprite {
+  display: block;
+  image-rendering: pixelated;
+  shape-rendering: crispEdges;
+}
+
+/* ---- 枠 ---- */
+
+/* 窓・紙・吹き出し。--px-frame の枠と --px-fill の塗りで描く */
+.px-frame {
+  border: 8px solid transparent;
+  border-image-source: var(--px-frame);
+  border-image-slice: 4;
+  border-image-width: 8px;
+  border-image-repeat: stretch;
+  background-color: var(--px-fill);
+  background-clip: padding-box;
+}
+
+/* ボタン。押している間は --px-frame-down の枠にし、2点沈める */
+.px-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 8px solid transparent;
+  border-image: var(--px-frame) 4 / 8px stretch;
+  background-color: var(--px-fill);
+  background-clip: padding-box;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.px-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.px-btn:active:not(:disabled) {
+  border-image-source: var(--px-frame-down, var(--px-frame));
+  transform: translateY(2px);
+}
+.px-btn:disabled {
+  cursor: not-allowed;
+}
+
+/* ---- 会話 ---- */
+
+.px-dialog {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+.px-dialog:not(:has(> .px-dialog-face)) {
+  grid-template-columns: 1fr;
+}
+.px-dialog-face {
+  display: grid;
+  place-items: center;
+}
+.px-dialog-name {
+  display: inline-block;
+}
+.px-dialog-count {
+  position: absolute;
+}
+.px-dialog-more {
+  position: absolute;
+  animation: px-bob 0.6s steps(2) infinite;
+}
+
+/* ---- 幕 ---- */
+
+.px-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+}
+.px-curtain::before,
+.px-curtain::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 51%;
+  background: var(
+    --px-curtain-cloth,
+    repeating-linear-gradient(90deg, #8a2b3d 0 14px, #b13e53 14px 30px, #d4505f 30px 36px, #b13e53 36px 46px),
+    #b13e53
+  );
+  box-shadow: inset 0 -24px 0 var(--px-curtain-hem, #5d1b2a);
+}
+.px-curtain::before {
+  left: 0;
+}
+.px-curtain::after {
+  right: 0;
+}
+.px-curtain-valance {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 2;
+  background: var(--px-curtain-valance, repeating-linear-gradient(90deg, #f7a541 0 8px, #ffcd75 8px 16px));
+  box-shadow: 0 6px 0 var(--px-curtain-hem, #5d1b2a);
+}
+.px-curtain-card {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  padding: 18px 36px;
+}
+/* 幕が開く。札が消え、幕が左右へ引かれ、最後に上の飾りが消える（合わせて 3.3 秒。Curtain の CURTAIN_MS） */
+.px-curtain-opening::before {
+  animation: px-curtain-left 1.4s steps(14) 1.7s forwards;
+}
+.px-curtain-opening::after {
+  animation: px-curtain-right 1.4s steps(14) 1.7s forwards;
+}
+.px-curtain-opening .px-curtain-card {
+  animation: px-fade-out 0.3s steps(3) 1.5s forwards;
+}
+.px-curtain-opening .px-curtain-valance {
+  animation: px-fade-out 0.3s steps(3) 3s forwards;
+}
+/* 幕が閉じる。幕が左右から寄り、札が現れる（合わせて 1.2 秒） */
+.px-curtain-closing::before {
+  transform: translateX(-100%);
+  animation: px-curtain-left-in 0.9s steps(12) forwards;
+}
+.px-curtain-closing::after {
+  transform: translateX(100%);
+  animation: px-curtain-right-in 0.9s steps(12) forwards;
+}
+.px-curtain-closing .px-curtain-card {
+  opacity: 0;
+  animation: px-fade-in 0.3s steps(3) 0.9s forwards;
+}
+
+/* ---- 舞台 ---- */
+
+.px-stage {
+  position: relative;
+  overflow: hidden;
+}
+.px-stage > canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+/* 重ねる層。押させたい要素だけ pointer-events を戻す */
+.px-stage-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ---- 動き ---- */
+
+@keyframes px-bob {
+  50% {
+    transform: translateY(3px);
+  }
+}
+@keyframes px-curtain-left {
+  to {
+    transform: translateX(-100%);
+  }
+}
+@keyframes px-curtain-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes px-curtain-left-in {
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes px-curtain-right-in {
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes px-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes px-fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+/* 動きを減らす設定の利用者には、エンジンの部品の動きを止め、最後の状態を出す */
+@media (prefers-reduced-motion: reduce) {
+  .px-dialog-more,
+  .px-curtain::before,
+  .px-curtain::after,
+  .px-curtain-card,
+  .px-curtain-valance {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    animation-delay: 0ms;
+  }
+}
