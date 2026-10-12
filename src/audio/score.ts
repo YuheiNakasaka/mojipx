@@ -23,6 +23,8 @@ export type Score = {
   readonly stepsPerBeat: 2; // 8分音符を1刻みとする
   readonly channels: readonly Channel[];
   readonly drums: readonly DrumChannel[];
+  /** 繰り返しの始まりの小節（0から数える）。前奏を1度だけ流し、その後ろだけを繰り返す曲に使う。なければ頭から繰り返す。 */
+  readonly loopFrom?: number;
 };
 
 export type Drum = 'kick' | 'snare' | 'hat';
@@ -38,7 +40,8 @@ export type Compiled = {
   readonly bpm: number;
   readonly intenseBpm: number;
   readonly stepsPerBeat: number;
-  readonly length: number; // ループ全体の刻みの数
+  readonly length: number; // 曲全体の刻みの数
+  readonly loopStart: number; // 2回目からのループが始まる刻み
   readonly notes: readonly (readonly NoteEvent[])[]; // 刻みごとに、その刻みで鳴り始める音
   readonly drums: readonly (readonly DrumEvent[])[];
 };
@@ -121,7 +124,17 @@ export function compile(score: Score): Compiled {
       });
     });
   }
-  return { bpm: score.bpm, intenseBpm: score.intenseBpm ?? score.bpm, stepsPerBeat: score.stepsPerBeat, length, notes, drums };
+  const loopFrom = score.loopFrom ?? 0;
+  if (loopFrom < 0 || (barCount > 0 && loopFrom >= barCount)) throw new Error(`繰り返しの始まりが曲の外: ${loopFrom}`);
+  return {
+    bpm: score.bpm,
+    intenseBpm: score.intenseBpm ?? score.bpm,
+    stepsPerBeat: score.stepsPerBeat,
+    length,
+    loopStart: loopFrom * perBar,
+    notes,
+    drums,
+  };
 }
 
 /** 1刻みの秒数。山場では intenseBpm の速さで刻む。 */

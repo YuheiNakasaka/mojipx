@@ -54,6 +54,23 @@ describe('compile', () => {
   });
 });
 
+describe('compile の繰り返し', () => {
+  const score = (loopFrom?: number) => ({
+    bpm: 120,
+    beatsPerBar: 4 as const,
+    stepsPerBeat: 2 as const,
+    channels: [{ voice: 'pulse' as const, volume: 1, layer: 'both' as const, bars: ['C4 - - - - - - -', 'D4 - - - - - - -'] }],
+    drums: [],
+    loopFrom,
+  });
+  it('繰り返しの始まりを決めなければ、頭から繰り返す', () => expect(compile(score()).loopStart).toBe(0));
+  it('繰り返しの始まりの小節を、刻みの番号にする', () => expect(compile(score(1)).loopStart).toBe(8));
+  it('繰り返しの始まりが曲の外なら例外にする', () => {
+    expect(() => compile(score(2))).toThrow();
+    expect(() => compile(score(-1))).toThrow();
+  });
+});
+
 describe('stepSecOf', () => {
   it('1刻みは8分音符の長さ。120bpm なら0.25秒', () => {
     const c = compile({ bpm: 120, intenseBpm: 150, beatsPerBar: 4, stepsPerBeat: 2, channels: [], drums: [] });
