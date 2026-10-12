@@ -89,6 +89,12 @@ describe('compile の音色と刻み', () => {
     expect(compile({ ...base, echo: { steps: 3, feedback: 0.4 } }).echo).toEqual({ steps: 3, feedback: 0.4 });
     expect(compile(base).echo).toBeNull();
   });
+  it('曲の大きさの倍率を 0〜2 に収め、決めなければ1にする', () => {
+    const base = { bpm: 120, beatsPerBar: 4 as const, stepsPerBeat: 2 as const, channels: [], drums: [] };
+    expect(compile(base).gain).toBe(1);
+    expect(compile({ ...base, gain: 0.7 }).gain).toBe(0.7);
+    expect(compile({ ...base, gain: 5 }).gain).toBe(2);
+  });
 });
 
 describe('compile の繰り返し', () => {

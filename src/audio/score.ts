@@ -39,6 +39,8 @@ export type Score = {
   readonly swing?: number;
   /** やまびこ。steps 刻み遅れて、feedback の割合ずつ弱まりながら繰り返す。チャンネルの echo で送る量を決める。 */
   readonly echo?: { readonly steps: number; readonly feedback: number };
+  /** 曲全体の大きさの倍率（0〜2）。曲ごとの聞こえる大きさをそろえるのに使う。既定は1。 */
+  readonly gain?: number;
 };
 
 export type Drum = 'kick' | 'snare' | 'hat' | 'open' | 'tom';
@@ -62,6 +64,7 @@ export type Compiled = {
   readonly loopStart: number; // 2回目からのループが始まる刻み
   readonly swing: number;
   readonly echo: { readonly steps: number; readonly feedback: number } | null;
+  readonly gain: number;
   readonly notes: readonly (readonly NoteEvent[])[]; // 刻みごとに、その刻みで鳴り始める音
   readonly drums: readonly (readonly DrumEvent[])[];
 };
@@ -158,6 +161,7 @@ export function compile(score: Score): Compiled {
     loopStart: loopFrom * perBar,
     swing: Math.min(0.5, Math.max(0, score.swing ?? 0)),
     echo: score.echo ?? null,
+    gain: Math.min(2, Math.max(0, score.gain ?? 1)),
     notes,
     drums,
   };

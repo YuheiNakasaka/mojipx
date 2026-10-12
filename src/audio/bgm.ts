@@ -284,7 +284,7 @@ export function createBgm<Track extends string>(
   let player: Player<Track> | null = null;
   let marks: readonly StepMark<Track>[] = [];
 
-  const level = (): number => master * volume;
+  const level = (track: Track): number => master * volume * compiledOf(track).gain;
   const lookahead = (): number => (isHidden() ? HIDDEN_LOOKAHEAD_SEC : LOOKAHEAD_SEC);
   const stepSec = (track: Track, peak: boolean): number => stepSecOf(compiledOf(track), peak);
 
@@ -333,8 +333,8 @@ export function createBgm<Track extends string>(
     const bus = ac.createGain();
     if (at === undefined) {
       bus.gain.setValueAtTime(0, now);
-      bus.gain.linearRampToValueAtTime(level(), now + FADE_IN_SEC);
-    } else bus.gain.setValueAtTime(level(), now);
+      bus.gain.linearRampToValueAtTime(level(track), now + FADE_IN_SEC);
+    } else bus.gain.setValueAtTime(level(track), now);
     bus.connect(ac.destination);
     const p: Player<Track> = { track, bus, timer: 0, step: 0, loop: 0, next: at ?? now + 0.05 };
     p.timer = window.setInterval(() => pump(ac, p), PUMP_MS);
@@ -448,7 +448,7 @@ export function createBgm<Track extends string>(
       const ac = audioContext(false);
       if (!ac || !player) return;
       player.bus.gain.cancelScheduledValues(ac.currentTime);
-      player.bus.gain.setTargetAtTime(level(), ac.currentTime, 0.03);
+      player.bus.gain.setTargetAtTime(level(player.track), ac.currentTime, 0.03);
     },
     position: () => {
       const ac = audioContext(false);
