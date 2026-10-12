@@ -385,7 +385,11 @@ export function createBgm<Track extends string>(
         return;
       }
       if (ac?.state === 'running') player = startPlayer(ac, want);
-      else onFirstGesture(apply);
+      else {
+        onFirstGesture(apply);
+        // 押した操作の中で resume を呼んだ直後は、まだ動いていない。動き出したところで流す。
+        ac?.addEventListener('statechange', apply, { once: true });
+      }
     } catch {
       // 音が出せない環境では黙る
       player = null;
