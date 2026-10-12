@@ -238,7 +238,8 @@ cccc は npm の包みではないので、`prepublishOnly` には入れず、CI
 
 ES モジュールだけを配る。
 `package.json` の `exports` は、`dist/` の JavaScript・型の宣言・CSS を指す。
-`dist/` は Git に入れず、`npm pack` と `npm publish` の前に `prepack` で書き出す。
+`dist/` は Git に入れず、`npm pack`・`npm publish`・GitHub からの `npm install` の前に `prepare` で書き出す。
+npm にまだ配っていない変更を使いたいゲームが、コミットを指して入れられるようにするためである。
 `npm publish` の前には、`prepublishOnly` で lint・型・テストを通す。
 包みに入れるのは `dist/`・`docs/`・`README.md`・`LICENSE` で、ソースの TypeScript とテストは入れない。
 エンジンの開発に要る依存（TypeScript、Vitest、Biome、型の宣言、React）は `devDependencies` に書く。
