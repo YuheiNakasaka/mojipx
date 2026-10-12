@@ -103,6 +103,7 @@ import { PixelStage } from 'mojipx/react';
 `PixelFill` は、大きさを決めずに親を隙間なく覆う舞台である。
 点の数は、短い辺がおよそ `short` 点になる整数の倍率で、親の大きさから決める（`fillSize`）。
 描く関数は、3つ目の引数で今の舞台の大きさを受け取る。背景いっぱいに動く絵に使う。
+どちらの舞台も、`maxFps` で1秒に描く回数の上限を決められる。書き換えの速い画面のスマホで、電池を減らしすぎないために使う。
 
 ```tsx
 <PixelFill short={180} label="夜の町" draw={(ctx, { sec }, { width, height }) => drawTown(ctx, sec, width, height)} />

@@ -12,21 +12,29 @@ export type DrawStage = (ctx: Ctx, clock: StageClock) => void;
 /** 親を覆う舞台の描く関数。size は今の舞台の大きさ（点）と倍率。 */
 export type DrawFill = (ctx: Ctx, clock: StageClock, size: FillSize) => void;
 
-/** 動く舞台は毎こま、止めた舞台は描き直しのたびに1度だけ、最新の描く関数を呼ぶ。 */
-function useDrawLoop(canvas: RefObject<HTMLCanvasElement | null>, draw: DrawStage, frozen: boolean, frameMs: number): void {
+/**
+ * 動く舞台は毎こま、止めた舞台は描き直しのたびに1度だけ、最新の描く関数を呼ぶ。
+ * maxFps を渡すと、1秒にそれより多くは描かない（画面の書き換えが速い端末で、電池を減らしすぎないため）。
+ */
+function useDrawLoop(canvas: RefObject<HTMLCanvasElement | null>, draw: DrawStage, frozen: boolean, frameMs: number, maxFps?: number): void {
   const latest = useRef(draw);
   latest.current = draw;
   useEffect(() => {
     const ctx = canvas.current?.getContext('2d');
     if (!ctx || frozen) return;
+    // こまの間隔が少し揺れても間引きすぎないよう、1ms の余裕をみる
+    const minGap = maxFps ? 1000 / maxFps - 1 : 0;
+    let last = Number.NEGATIVE_INFINITY;
     let id = requestAnimationFrame(function tick(now) {
+      id = requestAnimationFrame(tick);
+      if (now - last < minGap) return;
+      last = now;
       // キャンバスの大きさを変えると描き方の設定が戻るので、毎こま決め直す
       ctx.imageSmoothingEnabled = false;
       latest.current(ctx, { now, frame: Math.floor(now / frameMs), sec: now / 1000, still: false });
-      id = requestAnimationFrame(tick);
     });
     return () => cancelAnimationFrame(id);
-  }, [canvas, frozen, frameMs]);
+  }, [canvas, frozen, frameMs, maxFps]);
   useEffect(() => {
     const ctx = canvas.current?.getContext('2d');
     if (!ctx || !frozen) return;
@@ -68,6 +76,8 @@ type Props = {
   readonly still?: boolean;
   /** 絵の動きの1こまの長さ（ms）。既定は 250 で、1秒に4こま。 */
   readonly frameMs?: number;
+  /** 1秒に描く回数の上限。既定は画面の書き換えに合わせる。 */
+  readonly maxFps?: number;
   /** キャンバスの読み上げの名前。 */
   readonly label: string;
   /** 根の要素に足す class。関数なら倍率を受け取る（小さく描くときだけ名札を詰める、など）。 */
@@ -87,6 +97,7 @@ export function PixelStage({
   fit = DEFAULT_FIT,
   still = false,
   frameMs = 250,
+  maxFps,
   label,
   className,
   testId,
@@ -94,7 +105,7 @@ export function PixelStage({
 }: Props) {
   const { ref, scale } = useFitScale(width, height, fixed, fit);
   const canvas = useRef<HTMLCanvasElement>(null);
-  useDrawLoop(canvas, draw, still || prefersReducedMotion(), frameMs);
+  useDrawLoop(canvas, draw, still || prefersReducedMotion(), frameMs, maxFps);
 
   const size = { width: width * scale, height: height * scale };
   const extra = typeof className === 'function' ? className(scale) : className;
@@ -115,6 +126,8 @@ type FillProps = {
   readonly still?: boolean;
   /** 絵の動きの1こまの長さ（ms）。既定は 250 で、1秒に4こま。 */
   readonly frameMs?: number;
+  /** 1秒に描く回数の上限。既定は画面の書き換えに合わせる。 */
+  readonly maxFps?: number;
   /** キャンバスの読み上げの名前。 */
   readonly label: string;
   readonly className?: string;
@@ -126,7 +139,7 @@ type FillProps = {
 const sameSize = (a: FillSize, b: FillSize): boolean => a.width === b.width && a.height === b.height && a.scale === b.scale;
 
 /** 親を隙間なく覆う舞台。点の数は親の大きさから fillSize で決め、親が変わるたびに決め直す。背景いっぱいに動く絵に使う。 */
-export function PixelFill({ short, draw, still = false, frameMs = 250, label, className, testId, children }: FillProps) {
+export function PixelFill({ short, draw, still = false, frameMs = 250, maxFps, label, className, testId, children }: FillProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<FillSize>({ width: 1, height: 1, scale: 1 });
   useEffect(() => {
@@ -143,7 +156,7 @@ export function PixelFill({ short, draw, still = false, frameMs = 250, label, cl
     return () => ro.disconnect();
   }, [short]);
   const canvas = useRef<HTMLCanvasElement>(null);
-  useDrawLoop(canvas, (ctx, clock) => draw(ctx, clock, size), still || prefersReducedMotion(), frameMs);
+  useDrawLoop(canvas, (ctx, clock) => draw(ctx, clock, size), still || prefersReducedMotion(), frameMs, maxFps);
   const css = { width: size.width * size.scale, height: size.height * size.scale };
   return (
     <div ref={ref} className={className ? `px-fill ${className}` : 'px-fill'} data-scale={size.scale} data-testid={testId}>
