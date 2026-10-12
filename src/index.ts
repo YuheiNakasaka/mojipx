@@ -36,7 +36,7 @@ export {
   pointOnPath,
   strip,
 } from './draw.ts';
-export { type FitOptions, fitScale, SHRINK_MIN } from './fit.ts';
+export { type FillSize, type FitOptions, fillSize, fitScale, SHRINK_MIN } from './fit.ts';
 export { FRAME_SHAPES, type FrameColors, type FrameRole, type FrameShape, frameUrl, installFrames } from './frame.ts';
 export { prefersReducedMotion } from './motion.ts';
 export { canvasOf } from './raster.ts';

@@ -170,6 +170,17 @@ html {
   display: block;
   image-rendering: pixelated;
 }
+/* 親を覆う舞台。はみ出した端の点は切る */
+.px-fill {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.px-fill > canvas {
+  display: block;
+  image-rendering: pixelated;
+}
 /* 重ねる層。押させたい要素だけ pointer-events を戻す */
 .px-stage-layer {
   position: absolute;

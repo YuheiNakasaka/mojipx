@@ -29,3 +29,15 @@ export function fitScale(availW: number, availH: number, w: number, h: number, o
   if (!options.shrink) return 1;
   return Math.max(options.min ?? SHRINK_MIN, Math.floor(s * 100) / 100);
 }
+
+/** 画面を覆う舞台の大きさ（点）と倍率。fillSize が返す。 */
+export type FillSize = { readonly width: number; readonly height: number; readonly scale: number };
+
+/**
+ * 幅 availW・高さ availH を隙間なく覆う舞台の大きさと、整数の倍率。短い辺がおよそ short 点になる倍率を選ぶ。
+ * 舞台は親より最大で「倍率 - 1」画素だけはみ出すので、親で切る。背景いっぱいに動く絵を描く画面に使う。
+ */
+export function fillSize(availW: number, availH: number, short: number): FillSize {
+  const scale = Math.max(1, Math.round(Math.min(availW, availH) / short));
+  return { width: Math.max(1, Math.ceil(availW / scale)), height: Math.max(1, Math.ceil(availH / scale)), scale };
+}

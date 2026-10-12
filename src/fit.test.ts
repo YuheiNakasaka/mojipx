@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitScale, SHRINK_MIN } from './fit.ts';
+import { fillSize, fitScale, SHRINK_MIN } from './fit.ts';
 
 // 舞台は横400・縦224 とする
 const scaleIn = (w: number, h: number, options = {}) => fitScale(w, h, 400, 224, options);
@@ -29,4 +29,20 @@ describe('fitScale', () => {
     expect(scaleIn(1000, 100, { height: 1000 })).toBe(2);
     expect(scaleIn(1000, 1000, { height: 244, gutter: 20 })).toBe(1);
   });
+});
+
+describe('fillSize', () => {
+  it('短い辺がおよそ決めた点の数になる、整数の倍率を選ぶ', () => {
+    expect(fillSize(1920, 1080, 180)).toEqual({ width: 320, height: 180, scale: 6 });
+    expect(fillSize(390, 844, 180)).toEqual({ width: 195, height: 422, scale: 2 });
+  });
+  it('割り切れないときは切り上げて、隙間なく覆う', () => {
+    const s = fillSize(1000, 700, 180);
+    expect(s.scale).toBe(4);
+    expect(s.width * s.scale).toBeGreaterThanOrEqual(1000);
+    expect(s.height * s.scale).toBeGreaterThanOrEqual(700);
+    expect(s.width * s.scale - 1000).toBeLessThan(s.scale);
+  });
+  it('小さな親でも倍率は1より小さくしない', () => expect(fillSize(100, 50, 180)).toEqual({ width: 100, height: 50, scale: 1 }));
+  it('大きさのない親でも、1点の舞台にする', () => expect(fillSize(0, 0, 180)).toEqual({ width: 1, height: 1, scale: 1 }));
 });
