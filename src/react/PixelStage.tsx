@@ -16,7 +16,13 @@ export type DrawFill = (ctx: Ctx, clock: StageClock, size: FillSize) => void;
  * 動く舞台は毎こま、止めた舞台は描き直しのたびに1度だけ、最新の描く関数を呼ぶ。
  * maxFps を渡すと、1秒にそれより多くは描かない（画面の書き換えが速い端末で、電池を減らしすぎないため）。
  */
-function useDrawLoop(canvas: RefObject<HTMLCanvasElement | null>, draw: DrawStage, frozen: boolean, frameMs: number, maxFps?: number): void {
+function useDrawLoop(
+  canvas: RefObject<HTMLCanvasElement | null>,
+  draw: DrawStage,
+  frozen: boolean,
+  frameMs: number,
+  maxFps?: number,
+): void {
   const latest = useRef(draw);
   latest.current = draw;
   useEffect(() => {
