@@ -2,6 +2,7 @@
 
 export { type Bgm, type BgmOptions, createBgm } from './audio/bgm.ts';
 export { audioContext, noiseOf, onFirstGesture } from './audio/context.ts';
+export type { Envelope } from './audio/envelope.ts';
 export {
   audible,
   type Channel,
