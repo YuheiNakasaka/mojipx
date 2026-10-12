@@ -80,13 +80,21 @@ export function pointOnPath(path: readonly Point[], f: number): Point & { readon
     const a = path[i - 1] as Point;
     const b = path[i] as Point;
     const len = Math.abs(b.x - a.x) + Math.abs(b.y - a.y);
-    if (rest <= len || i === path.length - 1) {
-      const k = len === 0 ? 0 : Math.min(rest / len, 1);
-      const facing: Facing = b.x > a.x ? 'right' : b.x < a.x ? 'left' : b.y < a.y ? 'up' : 'down';
-      return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, facing };
-    }
+    if (rest <= len || i === path.length - 1) return pointOnSegment(a, b, rest, len);
     rest -= len;
   }
   const last = path.at(-1) ?? { x: 0, y: 0 };
   return { x: last.x, y: last.y, facing: 'right' };
+}
+
+// 長さ len の線分 a→b の、a から rest だけ進んだ位置（b を越えない）と、進む向き。
+function pointOnSegment(a: Point, b: Point, rest: number, len: number): Point & { readonly facing: Facing } {
+  const k = len === 0 ? 0 : Math.min(rest / len, 1);
+  return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, facing: facingOf(a, b) };
+}
+
+function facingOf(a: Point, b: Point): Facing {
+  if (b.x > a.x) return 'right';
+  if (b.x < a.x) return 'left';
+  return b.y < a.y ? 'up' : 'down';
 }
