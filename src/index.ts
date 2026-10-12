@@ -21,6 +21,7 @@ export {
   type Voice,
 } from './audio/score.ts';
 export { createSfx, type Sfx, type Tone } from './audio/sfx.ts';
+export { advanceStep, type BgmPosition, positionAt, recentMarks, type StepMark } from './audio/transport.ts';
 export { mixColor, tintedPalette } from './color.ts';
 export {
   type Ctx,
