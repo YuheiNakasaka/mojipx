@@ -4,9 +4,11 @@
 // 旋律・和音・低音の記法: 空白で区切った1語が1刻み。'C5' や 'F#4'、'Bb3' は音の高さ、'E4+G4' は和音、
 // '-' は前の音を伸ばし、'.' は休み。
 // 太鼓の記法: 1文字が1刻み。k=大太鼓、s=小太鼓、h=ハイハット、H=ハイハットを2つ（刻みの頭と半ば）、
-// x=大太鼓とハイハット、z=小太鼓とハイハット、'.'=休み。
+// x=大太鼓とハイハット、z=小太鼓とハイハット、o=開いたハイハット、t=タム、'.'=休み。
+import type { Envelope } from './envelope.ts';
 
-export type Voice = 'pulse' | 'square' | 'triangle';
+/** 'pulse' は幅25%、'pulse12' は幅12.5%のパルス波、'square' は矩形波。'sine'（正弦波）と 'saw'（のこぎり波）は16ビットの頃の音に寄せるときに使う。 */
+export type Voice = 'pulse' | 'pulse12' | 'square' | 'triangle' | 'sine' | 'saw';
 /** 'calm' は落ち着いているときだけ、'intense' は山場（setIntensity(1)）のときだけ、'both' はいつも鳴らす。 */
 export type Layer = 'calm' | 'intense' | 'both';
 export type Channel = {
@@ -14,26 +16,42 @@ export type Channel = {
   readonly volume: number; // 0〜1。曲の中の釣り合い
   readonly layer: Layer;
   readonly bars: readonly string[];
+  /** 音1つの大きさの動き。既定は 'hold'。 */
+  readonly envelope?: Envelope;
+  /** 長い音を揺らす幅（セント）。既定は0で揺らさない。 */
+  readonly vibrato?: number;
+  /** 左右の位置。-1 が左、1 が右。既定は0（真ん中）。 */
+  readonly pan?: number;
+  /** やまびこ（score.echo）に送る割合（0〜1）。既定は0。 */
+  readonly echo?: number;
 };
 export type DrumChannel = { readonly volume: number; readonly layer: Layer; readonly bars: readonly string[] };
 export type Score = {
   readonly bpm: number;
   readonly intenseBpm?: number; // 山場の速さ。なければ bpm のまま
   readonly beatsPerBar: 3 | 4;
-  readonly stepsPerBeat: 2; // 8分音符を1刻みとする
+  readonly stepsPerBeat: 2 | 4; // 2 なら8分音符、4 なら16分音符を1刻みとする
   readonly channels: readonly Channel[];
   readonly drums: readonly DrumChannel[];
   /** 繰り返しの始まりの小節（0から数える）。前奏を1度だけ流し、その後ろだけを繰り返す曲に使う。なければ頭から繰り返す。 */
   readonly loopFrom?: number;
+  /** 跳ねる割合（0〜0.5）。奇数の刻みを、刻みの長さのこの割合だけ遅らせる。既定は0。 */
+  readonly swing?: number;
+  /** やまびこ。steps 刻み遅れて、feedback の割合ずつ弱まりながら繰り返す。チャンネルの echo で送る量を決める。 */
+  readonly echo?: { readonly steps: number; readonly feedback: number };
 };
 
-export type Drum = 'kick' | 'snare' | 'hat';
+export type Drum = 'kick' | 'snare' | 'hat' | 'open' | 'tom';
 export type NoteEvent = {
   readonly midi: readonly number[];
   readonly steps: number;
   readonly voice: Voice;
   readonly volume: number;
   readonly layer: Layer;
+  readonly envelope: Envelope;
+  readonly vibrato: number;
+  readonly pan: number;
+  readonly echo: number;
 };
 export type DrumEvent = { readonly drum: Drum; readonly offset: 0 | 0.5; readonly volume: number; readonly layer: Layer }; // offset は刻みの中の位置（割合）
 export type Compiled = {
@@ -42,6 +60,8 @@ export type Compiled = {
   readonly stepsPerBeat: number;
   readonly length: number; // 曲全体の刻みの数
   readonly loopStart: number; // 2回目からのループが始まる刻み
+  readonly swing: number;
+  readonly echo: { readonly steps: number; readonly feedback: number } | null;
   readonly notes: readonly (readonly NoteEvent[])[]; // 刻みごとに、その刻みで鳴り始める音
   readonly drums: readonly (readonly DrumEvent[])[];
 };
@@ -79,11 +99,15 @@ const DRUM_HITS: Readonly<Record<string, readonly (readonly [Drum, 0 | 0.5])[]>>
     ['snare', 0],
     ['hat', 0],
   ],
+  o: [['open', 0]],
+  t: [['tom', 0]],
   '.': [],
 };
 
 /** 小節の語。旋律は空白で区切り、太鼓は1文字ずつ。 */
 export const tokensOf = (bar: string, drums: boolean): readonly string[] => (drums ? Array.from(bar) : bar.trim().split(/\s+/));
+
+const soundOf = (ch: Channel) => ({ envelope: ch.envelope ?? 'hold', vibrato: ch.vibrato ?? 0, pan: ch.pan ?? 0, echo: ch.echo ?? 0 });
 
 /** 譜面を刻みごとの音の並びにする。譜面の誤り（長さの合わない小節、読めない語）は例外にする。 */
 export function compile(score: Score): Compiled {
@@ -109,7 +133,7 @@ export function compile(score: Score): Compiled {
       });
       let steps = 1;
       while (tokens[step + steps] === '-') steps++;
-      notes[step]?.push({ midi, steps, voice: ch.voice, volume: ch.volume, layer: ch.layer });
+      notes[step]?.push({ midi, steps, voice: ch.voice, volume: ch.volume, layer: ch.layer, ...soundOf(ch) });
     });
   }
   for (const ch of score.drums) {
@@ -132,6 +156,8 @@ export function compile(score: Score): Compiled {
     stepsPerBeat: score.stepsPerBeat,
     length,
     loopStart: loopFrom * perBar,
+    swing: Math.min(0.5, Math.max(0, score.swing ?? 0)),
+    echo: score.echo ?? null,
     notes,
     drums,
   };
