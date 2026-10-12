@@ -156,7 +156,9 @@ const saved = progress.load(); // ない・読めない・形が合わないと�
 | `npm run typecheck` | 型 |
 | `npm run lint` | 書き方と整形（Biome） |
 | `npm run build` | `dist/` に JavaScript・型の宣言・CSS を書き出せる |
+| `cccc .` | 関数ごとの認知的複雑度と循環的複雑度が15以下か。[cccc](https://github.com/moznion/cccc) は別に入れる。上限は `cccc.toml` |
 
+`main` への push と pull request では、GitHub Actions（`.github/workflows/ci.yml`）が表のコマンドをすべて通す。
 `npm publish` は、`prepublishOnly` で lint・型・テストを通し、`prepack` で `dist/` を書き出してから配る。
 
 ## ライセンス

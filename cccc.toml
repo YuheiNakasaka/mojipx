@@ -1,0 +1,4 @@
+# 関数ごとの認知的複雑度と循環的複雑度の上限（https://github.com/moznion/cccc）。`cccc .` で確かめる。
+exclude = ["**/*.test.{ts,tsx}"]
+max-cognitive = 15
+max-cyclomatic = 15

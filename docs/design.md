@@ -229,6 +229,10 @@ CSS のメディアクエリと JavaScript で別々に境目を書くと、ず�
 | 依存の向き | エンジンの単体テスト（`src/boundary.test.ts`） |
 | 部品と画面の型 | エンジンを使うゲームの画面の通し確認（Playwright など）を、パソコン・タブレットの横と縦・スマホの縦と横の大きさで行う。エンジンの中には持たない |
 | 配れるか | `npm run build` で、`dist/` に JavaScript・型の宣言・CSS を書き出せる。`npm pack --dry-run` で、包みの中身を見る |
+| 関数ごとの複雑度 | [cccc](https://github.com/moznion/cccc) で、関数ごとの認知的複雑度と循環的複雑度が15以下かを測る。上限は `cccc.toml` に置き、テストは測らない |
+
+`main` への push と pull request では、GitHub Actions で lint・型・テスト・書き出し・複雑度を通す。
+cccc は npm の包みではないので、`prepublishOnly` には入れず、CI で止める。
 
 ## 配り方
 
