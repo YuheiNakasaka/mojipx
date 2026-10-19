@@ -5,6 +5,11 @@ It covers drawing sprites, window frames, advancing dialogue, curtains, a canvas
 You can build screens that are playable in desktop, tablet, and phone browsers.
 The design is in [docs/design.md](docs/design.md).
 
+[![Four screens from BGM Shower: the title screen, a turn-based battle, penguins riding a train, and a shrine at night](.github/images/bgm-shower.png)](https://mojipx-bgm-shower.razokulover.workers.dev/)
+
+These are screens from [BGM Shower](https://mojipx-bgm-shower.razokulover.workers.dev/), a site that plays endless chiptune over full-screen pixel-art scenes.
+mojipx provides the window frames, the buttons, the full-screen stage, and the music playback; the site supplies the scenes and the tracks.
+
 ## Install
 
 ```sh
