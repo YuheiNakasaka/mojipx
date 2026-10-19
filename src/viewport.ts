@@ -1,4 +1,4 @@
-// 画面の型（docs/design.md#画面の大きさと端末）。画面の大きさと主な入力から、並べ方の型を決める。
+// 画面の型（docs/design.md#screen-size-and-devices）。画面の大きさと主な入力から、並べ方の型を決める。
 // classify は DOM に触れない。installViewport と watchViewport は、根の要素の印と、大きさの変化を受け持つ。
 
 export type Layout = 'wide' | 'stack';

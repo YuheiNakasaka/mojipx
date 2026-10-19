@@ -1,4 +1,4 @@
-# main への push と pull request で、README の確かめ方を通す（docs/design.md#確かめ方）。
+# main への push と pull request で、README の確かめ方を通す（docs/design.md#verification）。
 name: CI
 
 on:

@@ -1,4 +1,4 @@
-// 絵をキャンバスの画像にする（docs/design.md#ドット絵）。DOM に触れる。
+// 絵をキャンバスの画像にする（docs/design.md#pixel-art）。DOM に触れる。
 import { type Palette, type Recolor, runsOf, type Sprite, sizeOf } from './sprite.ts';
 
 // キャンバスの画像は、絵・配色・差し替えの色の組ごとに1度だけ作る。

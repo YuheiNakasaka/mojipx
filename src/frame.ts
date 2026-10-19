@@ -1,4 +1,4 @@
-// 窓・紙・吹き出し・ボタンの枠（docs/design.md#窓の枠）。12×12 の絵を、4点ずつの9分割で border-image に使う。
+// 窓・紙・吹き出し・ボタンの枠（docs/design.md#window-frames）。12×12 の絵を、4点ずつの9分割で border-image に使う。
 // 枠の形は色の代わりに役目の文字で書き、ゲームが役目ごとの色を渡す。
 // O は輪郭、L は縁の明るい色、F は塗り、H はボタンの上の明るい色、S はボタンの下の影と紙の影。
 import { type Recolor, type Sprite, svgUrl } from './sprite.ts';

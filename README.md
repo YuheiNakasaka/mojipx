@@ -1,33 +1,33 @@
 # mojipx
 
-ドット絵の見た目のブラウザーゲームを作るための部品の集まりである。
-絵の描き方、窓の枠、会話の送り、幕、キャンバスの舞台、音、保存、再生の時計、画面の大きさの扱いを持つ。
-パソコン・タブレット・スマホのブラウザーで遊べる画面を作れる。
-設計は [docs/design.md](docs/design.md) にある。
+A collection of building blocks for making browser games with a pixel-art look.
+It covers drawing sprites, window frames, advancing dialogue, curtains, a canvas stage, sound, saving, a playback clock, and handling screen sizes.
+You can build screens that are playable in desktop, tablet, and phone browsers.
+The design is in [docs/design.md](docs/design.md).
 
-## 入れ方
+## Install
 
 ```sh
 npm install mojipx
 ```
 
-React の部品を使うときだけ、`react`（18 以上）も入れる。
-ES モジュールだけを配る。
-型の宣言は TypeScript 5.0 以上で読める。
+Install `react` (18 or later) as well only if you use the React components.
+Only ES modules are shipped.
+The type declarations can be read by TypeScript 5.0 or later.
 
-## 入口
+## Entry points
 
-| 入口 | 中身 |
+| Entry point | Contents |
 |---|---|
-| `mojipx` | 絵、色、枠、描く道具、舞台の拡大の計算、画面の型、保存、設定、時計、音。React に依らない |
-| `mojipx/react` | `Pixel`・`PixelStage`・`Dialogue`・`Curtain` の部品と、`useViewport`・`useSetting`・`useBgm`・`usePlayClock`・`useReveal`・`useCountUp`・`useBeat` のフック |
-| `mojipx/styles.css` | 枠・ボタン・会話・幕・舞台の CSS。ゲームの CSS より先に読み込む |
+| `mojipx` | Sprites, colors, frames, drawing tools, stage scaling math, viewport, storage, settings, clocks, and sound. Does not depend on React |
+| `mojipx/react` | The `Pixel`, `PixelStage`, `Dialogue`, and `Curtain` components, and the `useViewport`, `useSetting`, `useBgm`, `usePlayClock`, `useReveal`, `useCountUp`, and `useBeat` hooks |
+| `mojipx/styles.css` | CSS for frames, buttons, dialogue, curtains, and stages. Load it before the game's CSS |
 
-## 使い方
+## Usage
 
-### 絵と配色
+### Sprites and palettes
 
-絵は、1文字を1色に対応させた行の文字列で書く。`.` は透明である。
+Write a sprite as rows of strings, with each character mapped to one color. `.` is transparent.
 
 ```ts
 import type { Palette, Sprite } from 'mojipx';
@@ -43,19 +43,19 @@ export const HEART: Sprite = [
 ];
 ```
 
-React の画面では、根で配色を渡し、`Pixel` で描く。
+In React screens, pass the palette at the root and draw with `Pixel`.
 
 ```tsx
 import { PaletteProvider, Pixel } from 'mojipx/react';
 
 <PaletteProvider palette={PALETTE}>
-  <Pixel sprite={HEART} scale={4} title="体力" />
+  <Pixel sprite={HEART} scale={4} title="HP" />
 </PaletteProvider>;
 ```
 
-`spriteProblems(sprite, palette)` は、行の長さのずれと配色にない文字を挙げる。絵のテストに使う。
+`spriteProblems(sprite, palette)` lists rows whose lengths don't match and characters missing from the palette. Use it in sprite tests.
 
-### 窓の枠
+### Window frames
 
 ```ts
 import { frameUrl, installFrames } from 'mojipx';
@@ -74,13 +74,13 @@ installFrames({
 
 ```tsx
 <section className="px-frame win">…</section>
-<button type="button" className="px-btn btn">はじめる</button>
+<button type="button" className="px-btn btn">Start</button>
 ```
 
-### 舞台
+### Stage
 
-`PixelStage` は、決まった大きさの点の画面を、親の大きさに合わせて拡大して描く。
-描く関数は毎こま呼ばれ、描き直しのたびに最新のものに差し替わる。
+`PixelStage` draws a fixed-size pixel screen, scaled up to fit its parent.
+The draw function is called every frame, and each render replaces it with the latest one.
 
 ```tsx
 import { drawSpriteFoot } from 'mojipx';
@@ -89,34 +89,34 @@ import { PixelStage } from 'mojipx/react';
 <PixelStage
   width={320}
   height={180}
-  label="町の様子"
+  label="Town view"
   fit={{ gutter: 20, shrink: viewport.layout === 'stack' }}
   draw={(ctx, { frame }) => {
     ctx.clearRect(0, 0, 320, 180);
     drawSpriteFoot(ctx, frame % 2 === 0 ? WALK_A : WALK_B, PALETTE, 160, 120);
   }}
 >
-  {(scale) => <span className="name" style={{ left: 160 * scale, top: 90 * scale }}>勇者</span>}
+  {(scale) => <span className="name" style={{ left: 160 * scale, top: 90 * scale }}>Hero</span>}
 </PixelStage>;
 ```
 
-`PixelFill` は、大きさを決めずに親を隙間なく覆う舞台である。
-点の数は、短い辺がおよそ `short` 点になる整数の倍率で、親の大きさから決める（`fillSize`）。
-描く関数は、3つ目の引数で今の舞台の大きさを受け取る。背景いっぱいに動く絵に使う。
-どちらの舞台も、`maxFps` で1秒に描く回数の上限を決められる。書き換えの速い画面のスマホで、電池を減らしすぎないために使う。
+`PixelFill` is a stage with no fixed size that covers its parent without gaps.
+It derives its size in pixels from the parent's size, using the integer scale at which the shorter side is about `short` pixels (`fillSize`).
+The draw function receives the current stage size as its third argument. Use it for pictures that move across the whole background.
+Both stages accept `maxFps`, which caps how many times per second they draw. Use it on phones with high-refresh-rate screens to keep from draining the battery too fast.
 
 ```tsx
-<PixelFill short={180} label="夜の町" draw={(ctx, { sec }, { width, height }) => drawTown(ctx, sec, width, height)} />
+<PixelFill short={180} label="Town at night" draw={(ctx, { sec }, { width, height }) => drawTown(ctx, sec, width, height)} />
 ```
 
-### 画面の大きさ
+### Screen size
 
-起動のときに `installViewport()` を呼ぶと、`<html>` に `data-layout`（`wide`・`stack`）・`data-orientation`・`data-pointer` が付く。
-CSS はこの印で並べ方を変え、React の部品は `useViewport()` で同じ値を読む。
-広い画面の下限は `installViewport({ wideMinWidth, wideMinHeight })` で変えられる。
-積む画面の決まりは [docs/design.md#画面の大きさと端末](docs/design.md#画面の大きさと端末) にある。
+Call `installViewport()` at startup to set `data-layout` (`wide` or `stack`), `data-orientation`, and `data-pointer` on `<html>`.
+CSS switches layouts on these attributes, and React components read the same values with `useViewport()`.
+You can change the minimum size of the wide layout with `installViewport({ wideMinWidth, wideMinHeight })`.
+The rules for stacked screens are in [docs/design.md#screen-size-and-devices](docs/design.md#screen-size-and-devices).
 
-### 音
+### Sound
 
 ```ts
 import { createBgm, createSetting, createSfx, repeatBars, type Score } from 'mojipx';
@@ -137,58 +137,58 @@ const bgm = createBgm({ title: TITLE_SCORE }, createSetting('my-game:bgm', false
 sfx.play('select');
 ```
 
-画面では `useBgm(bgm, 'title')` で流す曲を伝え、`useSetting(bgm.setting)` で入り切りを読む。
+In a screen, tell it which track to play with `useBgm(bgm, 'title')`, and read whether music is on with `useSetting(bgm.setting)`.
 
-曲を次々に流す画面では、`bgm.cue('next')` で次の曲を伝える。今の曲のループが終わったところで、継ぎ目なく替わる。
-`bgm.position()` は、今聞こえている曲・刻み・終えたループの数・刻みの中の進み具合を返す。絵を拍に合わせて動かすのに使う。
-`bgm.setVolume(0.5)` で大きさを変える。
-タブが隠れている間は止める。音楽を聞かせるサイトのように流し続けたいときは、`createBgm(scores, setting, { pauseWhenHidden: false })` とする。
-前奏を1度だけ流して、その後ろだけを繰り返す曲は、譜面に `loopFrom`（繰り返しの始まりの小節。0から数える）を書く。
+On screens that play tracks one after another, queue the next track with `bgm.cue('next')`. It switches seamlessly when the current track's loop ends.
+`bgm.position()` returns the track currently heard, the step, the number of loops completed, and how far into the step it is. Use it to move pictures in time with the beat.
+`bgm.setVolume(0.5)` changes the volume.
+Playback pauses while the tab is hidden. To keep playing, as on a site meant for listening to music, use `createBgm(scores, setting, { pauseWhenHidden: false })`.
+For a track that plays an intro once and then repeats only what follows, write `loopFrom` (the bar where the loop starts, counting from 0) in the score.
 
-譜面は小節ごとの文字列で書き、`stepsPerBeat` が 2 なら8分音符、4 なら16分音符を1刻みとする。
+Scores are written as one string per bar. One step is an eighth note when `stepsPerBeat` is 2, and a sixteenth note when it is 4.
 
-- 旋律・和音・低音は、空白で区切った1語が1刻みである。`C5`・`F#4`・`Bb3` は音の高さ、`E4+G4` は和音、`-` は前の音を伸ばし、`.` は休み。
-- 太鼓は、1文字が1刻みである。`k` は大太鼓、`s` は小太鼓、`h` はハイハット、`H` はハイハットを2つ（刻みの頭と半ば）、`x` は大太鼓とハイハット、`z` は小太鼓とハイハット、`o` は開いたハイハット、`t` はタム、`.` は休み。
-- `layer` は、`calm` なら落ち着いているときだけ、`intense` なら山場（`bgm.setIntensity(1)`）のときだけ、`both` ならいつも鳴らす。
+- For melody, chords, and bass, each space-separated word is one step. `C5`, `F#4`, and `Bb3` are pitches, `E4+G4` is a chord, `-` holds the previous note, and `.` is a rest.
+- For drums, each character is one step. `k` is the kick, `s` the snare, `h` the hi-hat, `H` two hi-hats (at the start and middle of the step), `x` the kick and hi-hat, `z` the snare and hi-hat, `o` the open hi-hat, `t` the tom, and `.` a rest.
+- `layer` set to `calm` plays only while things are calm, `intense` only at the climax (`bgm.setIntensity(1)`), and `both` all the time.
 
-音色（`voice`）は、`pulse`（幅25%のパルス波）・`pulse12`（幅12.5%）・`square`・`triangle`・`sine`・`saw` から選ぶ。
-チャンネルには、ほかに次の値を書ける。
+Choose the voice (`voice`) from `pulse` (25% pulse wave), `pulse12` (12.5%), `square`, `triangle`, `sine`, and `saw`.
+Channels can also have the following values.
 
-| 値 | 意味 |
+| Value | Meaning |
 |---|---|
-| `envelope` | 音1つの大きさの動き。`hold`（既定。伸ばす間少しずつ弱める）・`pluck`（弾いた弦や木琴のようにすぐ減る）・`swell`（ゆっくりふくらむ） |
-| `vibrato` | 長い音を、少し遅れてから揺らす幅（セント） |
-| `pan` | 左右の位置。-1 が左、1 が右 |
-| `echo` | やまびこに送る割合（0〜1） |
+| `envelope` | How each note's loudness changes. `hold` (default; fades slowly while held), `pluck` (decays quickly, like a plucked string or a xylophone), or `swell` (swells slowly) |
+| `vibrato` | How far to wobble long notes (in cents), starting after a short delay |
+| `pan` | Left-right position. -1 is left, 1 is right |
+| `echo` | How much to send to the echo (0–1) |
 
-譜面には、ほかに `swing`（奇数の刻みを遅らせて跳ねさせる割合。0〜0.5）、`echo`（`{ steps, feedback }`。何刻み遅れて、どれだけ弱まりながら繰り返すか）、`gain`（曲全体の大きさの倍率。0〜2。曲ごとの聞こえる大きさをそろえる）を書ける。
+A score can also have `swing` (how far to delay the odd steps to make them bounce; 0–0.5), `echo` (`{ steps, feedback }`; how many steps later it repeats, and how much it fades each time), and `gain` (volume multiplier for the whole track; 0–2; used to even out loudness across tracks).
 
-小節の長さが合わない譜面と、読めない語は、`compile` が例外にする。
+`compile` throws on scores whose bar lengths don't match and on words it cannot read.
 
-### 保存
+### Storage
 
 ```ts
 import { canStore, createStore } from 'mojipx';
 
-const progress = createStore('my-game:save', parseSave); // parseSave は形が合わなければ null を返す
+const progress = createStore('my-game:save', parseSave); // parseSave returns null if the shape doesn't match
 progress.save(state);
-const saved = progress.load(); // ない・読めない・形が合わないときは null
+const saved = progress.load(); // null when missing, unreadable, or the wrong shape
 ```
 
-## 確かめ方
+## Verification
 
-| コマンド | 確かめること |
+| Command | What it checks |
 |---|---|
-| `npm test` | DOM に触れない関数と、依存の向き |
-| `npm run typecheck` | 型 |
-| `npm run lint` | 書き方と整形（Biome） |
-| `npm run build` | `dist/` に JavaScript・型の宣言・CSS を書き出せる |
-| `cccc .` | 関数ごとの認知的複雑度と循環的複雑度が15以下か。[cccc](https://github.com/moznion/cccc) は別に入れる。上限は `cccc.toml` |
+| `npm test` | Functions that don't touch the DOM, and the dependency direction |
+| `npm run typecheck` | Types |
+| `npm run lint` | Code style and formatting (Biome) |
+| `npm run build` | JavaScript, type declarations, and CSS can be written to `dist/` |
+| `cccc .` | Each function's cognitive and cyclomatic complexity is 15 or less. Install [cccc](https://github.com/moznion/cccc) separately. The limits are in `cccc.toml` |
 
-`main` への push と pull request では、GitHub Actions（`.github/workflows/ci.yml`）が表のコマンドをすべて通す。
-`npm publish` は、`prepublishOnly` で lint・型・テストを通し、`prepare` で `dist/` を書き出してから配る。
-`prepare` は GitHub から入れたときにも走るので、`npm install github:YuheiNakasaka/mojipx#<コミット>` でも使える。
+On pushes to `main` and on pull requests, GitHub Actions (`.github/workflows/ci.yml`) runs every command in the table.
+`npm publish` runs lint, type checks, and tests in `prepublishOnly`, and writes `dist/` in `prepare` before publishing.
+`prepare` also runs when installing from GitHub, so `npm install github:YuheiNakasaka/mojipx#<commit>` works too.
 
-## ライセンス
+## License
 
 MIT

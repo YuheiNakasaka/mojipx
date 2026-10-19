@@ -1,7 +1,7 @@
 {
   "name": "mojipx",
   "version": "0.2.0",
-  "description": "ドット絵の見た目のブラウザーゲームを作るための部品の集まり",
+  "description": "Building blocks for making browser games with a pixel-art look",
   "keywords": [
     "pixel-art",
     "retro",

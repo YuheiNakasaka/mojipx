@@ -1,4 +1,4 @@
-// パッケージの入口（docs/design.md#持つもの）。React に依らない仕組みを出す。React の部品は ./react の入口にある。
+// パッケージの入口（docs/design.md#features）。React に依らない仕組みを出す。React の部品は ./react の入口にある。
 
 export { type Bgm, type BgmOptions, createBgm } from './audio/bgm.ts';
 export { audioContext, noiseOf, onFirstGesture } from './audio/context.ts';

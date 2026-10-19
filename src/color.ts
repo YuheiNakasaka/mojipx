@@ -1,4 +1,4 @@
-// 色の混ぜ合わせ（docs/design.md#持つもの）。夜の景色を暗く、傷を負った人を赤く描くような、配色全体の色の寄せに使う。
+// 色の混ぜ合わせ（docs/design.md#features）。夜の景色を暗く、傷を負った人を赤く描くような、配色全体の色の寄せに使う。
 // DOM に触れない。
 import type { Palette, Recolor } from './sprite.ts';
 

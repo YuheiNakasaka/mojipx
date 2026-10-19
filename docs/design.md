@@ -1,259 +1,259 @@
-# mojipx 設計書
+# mojipx design
 
-この文書は、ドット絵の見た目のブラウザーゲームを作るための部品の集まり「mojipx」（以下、エンジン）の設計を定める。
-読者は、このエンジンを作り、直す人と、このエンジンでゲームを作る人である。
+This document sets out the design of mojipx (hereafter "the engine"), a collection of building blocks for making browser games with a pixel-art look.
+Its readers are the people who build and fix the engine, and the people who make games with it.
 
-## 目的
+## Purpose
 
-ドット絵のゲームを作るたびに、絵の描き方、窓の枠、会話の送り、キャンバスの拡大、音、保存を作り直さずに済むようにする。
-ゲームの中身に依らない仕組みを1つのパッケージにまとめ、どのゲームでもそのまま使える形にする。
+Stop rebuilding sprite drawing, window frames, dialogue advancing, canvas scaling, sound, and saving for every pixel-art game.
+Gather the mechanisms that don't depend on a game's content into one package, in a form any game can use as is.
 
-## 要件
+## Requirements
 
-| 項目 | 決定 |
+| Item | Decision |
 |---|---|
-| できること | [持つもの](#持つもの)に挙げる仕組みを持つ |
-| 端末 | パソコン、タブレット、スマホのブラウザーで遊べる画面を作れる。縦向きと横向きのどちらも |
-| 入力 | マウス、キーボード、タッチ。マウスを載せないと分からない情報を作らない |
-| 動き | 動きを減らす設定の利用者には、アニメーションを止めて最後の状態を出せる |
-| 依存 | ブラウザーの標準の機能だけで動く。React の部品は別の入口に分け、React は任意の依存とする |
-| ゲームを知らない | ゲームの規則・文面・絵の中身・色を持たない。どれもゲームから受け取る |
-| 書き方 | 関数型のドメインモデリングで書く。型は判別可能な union と readonly で表し、class を使わない |
+| Capabilities | Has the mechanisms listed in [Features](#features) |
+| Devices | Can build screens playable in desktop, tablet, and phone browsers, in both portrait and landscape |
+| Input | Mouse, keyboard, and touch. Never makes information that you can only find by hovering the mouse |
+| Motion | For users who prefer reduced motion, can stop animations and show their final state |
+| Dependencies | Runs on standard browser features alone. The React components live in a separate entry point, and React is an optional dependency |
+| Game-agnostic | Holds no game rules, text, sprite content, or colors. All of them come from the game |
+| Code style | Written with functional domain modeling. Types are expressed with discriminated unions and readonly, and classes are not used |
 
-## 境界
+## Boundary
 
-エンジンは単体の npm のパッケージである。
-ゲームは、このパッケージを依存に書いて読み込む。
+The engine is a standalone npm package.
+A game lists this package as a dependency and imports it.
 
-依存の向きは、ゲームからエンジンへの一方向だけとする。
-エンジンのファイル（`src/` の下）は、エンジンの外のファイルを読まない。
-読んでよい外のパッケージは React だけとする（テストでは Vitest と Node の標準の部品も読む）。
-この決まりは、エンジンの単体テスト（`src/boundary.test.ts`）が、エンジンのすべてのファイルの import を調べて守る。
-向きを決まりで守るのは、ゲームの何かを当てにして、ほかのゲームでは動かない、ということを起こさないためである。
+Dependencies point one way only: from the game to the engine.
+Engine files (under `src/`) don't import files outside the engine.
+The only outside package they may import is React (tests also import Vitest and Node's built-in modules).
+An engine unit test (`src/boundary.test.ts`) enforces this rule by checking the imports of every engine file.
+The direction is enforced by rule so that the engine never comes to rely on something in one game and then fails to work in other games.
 
-エンジンとゲームの受け持ちは次のとおりとする。
+The engine and the game split responsibilities as follows.
 
-| 仕組み | エンジン | ゲーム |
+| Mechanism | Engine | Game |
 |---|---|---|
-| ドット絵 | 行の文字列の絵を、矩形・SVG・キャンバスにする。色の差し替え | 絵の中身と配色 |
-| 窓の枠 | 9分割の枠の形、枠を CSS 変数に入れる仕組み、枠を使う CSS | 枠の色、窓の種類の名前 |
-| 会話 | 文字を1つずつ出し、押すと送る窓 | 話す人、顔、文面 |
-| 幕 | 開く・閉じる幕の動き | 幕の上に出す札 |
-| 舞台 | 決まった大きさの点の画面を、親の大きさに合わせて拡大し、毎こま描く。DOM を重ねる層 | 舞台に描くもの、重ねる名札 |
-| 描く道具 | 矩形、絵の配置、下から伸びる絵、太い線、色の混ぜ合わせ、決まった乱数 | 物や人の描き方 |
-| 音 | 効果音の譜、BGM の譜面の読み方と鳴らし方、入り切りの設定 | 効果音と曲の中身 |
-| 保存 | 投げない localStorage の読み書き、形の検査を通した読み込み | 保存する値の形と検査 |
-| 時計 | 時点の重みで長さを配る再生の時計、1件ずつ出す読み上げ | 時点の数と見せ場 |
-| 画面の大きさ | 画面の型の判定、根の要素への印、タッチの扱い | 型ごとの並べ方 |
+| Pixel art | Turns row-string sprites into rects, SVG, and canvases. Recoloring | Sprite content and palettes |
+| Window frames | The 9-slice frame shapes, the mechanism that puts frames into CSS variables, and the CSS that uses frames | Frame colors and the names of window kinds |
+| Dialogue | A window that shows text one character at a time and advances on press | Speakers, faces, and lines |
+| Curtain | The opening and closing curtain animations | The card shown on the curtain |
+| Stage | Scales a fixed-size pixel screen to fit its parent and draws it every frame. A DOM layer on top | What to draw on the stage, and the name tags on top |
+| Drawing tools | Rects, sprite placement, sprites that grow from the bottom, thick lines, color mixing, deterministic random numbers | How to draw things and people |
+| Sound | SFX tone lists, reading and playing BGM scores, and the on/off setting | The content of the SFX and tracks |
+| Storage | localStorage reads and writes that never throw, and loading through a shape check | The shape of saved values and their check |
+| Clock | A playback clock that hands out time by tick weight, and a reveal that shows items one at a time | The number of ticks and the highlights |
+| Screen size | Detecting the viewport, attributes on the root element, and touch handling | The layout for each viewport |
 
-## 持つもの
+## Features
 
-エンジンには3つの入口がある。
+The engine has three entry points.
 
-| 入口 | 中身 | DOM |
+| Entry point | Contents | DOM |
 |---|---|---|
-| `mojipx` | 絵、色、枠、描く道具、舞台の拡大の計算、画面の型、保存、時計、音 | 触れる関数と触れない関数を持つ。触れない関数は Node でも動く |
-| `mojipx/react` | 絵、舞台、会話、幕の部品と、画面の型・設定・時計のフック | 触れる |
-| `mojipx/styles.css` | 枠・ボタン・会話・幕・舞台の CSS と、ドット絵の描き方の土台（指で押したときの色の膜と、横向きにしたときの文字の拡大を止める） | － |
+| `mojipx` | Sprites, colors, frames, drawing tools, stage scaling math, viewport, storage, clock, and sound | Has both functions that touch it and ones that don't. The ones that don't also run on Node |
+| `mojipx/react` | Sprite, stage, dialogue, and curtain components, and hooks for the viewport, settings, and clocks | Touches it |
+| `mojipx/styles.css` | CSS for frames, buttons, dialogue, curtains, and stages, plus a base for drawing pixel art (it stops the color overlay on tap and the text enlargement in landscape) | – |
 
-### ドット絵
+### Pixel art
 
-絵は、1文字を1色に対応させた行の文字列の並び（`Sprite`）で書く。
-`.` は透明とする。
-配色（`Palette`）は、文字から色への対応で、ゲームが渡す。
-色の差し替え（`Recolor`）は、配色の一部の文字を別の色にする。
-人の髪や服の色を、同じ絵のまま変えるためである。
+A sprite (`Sprite`) is written as an array of row strings, with each character mapped to one color.
+`.` is transparent.
+A palette (`Palette`) maps characters to colors, and the game provides it.
+A recolor (`Recolor`) swaps some of the palette's characters to other colors.
+This lets a character's hair or clothes change color while keeping the same sprite.
 
-| 関数 | すること |
+| Function | What it does |
 |---|---|
-| `sizeOf` | 絵の幅と高さ |
-| `flipped` | 左右を反転した絵 |
-| `runsOf` | 横に続く同じ色の点を1つの矩形にまとめる |
-| `svgOf`・`svgUrl` | 絵を SVG の文字列と、CSS の `url()` にする |
-| `canvasOf` | 絵を等倍のキャンバスにする。絵・配色・差し替えの組ごとに1度だけ作る |
-| `spriteProblems` | 行の長さのずれと、配色にない文字を挙げる。絵の検査に使う |
+| `sizeOf` | The sprite's width and height |
+| `flipped` | The sprite mirrored left to right |
+| `runsOf` | Merges horizontal runs of same-colored pixels into single rects |
+| `svgOf`, `svgUrl` | Turns a sprite into an SVG string and a CSS `url()` |
+| `canvasOf` | Turns a sprite into a canvas at 1x. Builds it only once per combination of sprite, palette, and recolor |
+| `spriteProblems` | Lists rows whose lengths don't match and characters missing from the palette. Used to check sprites |
 
-### 窓の枠
+### Window frames
 
-窓・紙・吹き出し・ボタンの枠は、12×12 の絵を4点ずつ9つに分けて、CSS の `border-image` で伸ばす。
-枠の形（`FRAME_SHAPES`）は、色の代わりに役目の文字で書く。
+Frames for windows, paper, speech bubbles, and buttons are 12×12 sprites cut into nine 4-pixel pieces and stretched with CSS `border-image`.
+Frame shapes (`FRAME_SHAPES`) are written with role characters instead of colors.
 
-| 文字 | 役目 |
+| Character | Role |
 |---|---|
-| `O` | 輪郭 |
-| `L` | 縁の明るい色 |
-| `F` | 塗り |
-| `H` | ボタンの上の明るい色 |
-| `S` | ボタンの下の影、紙の影 |
+| `O` | Outline |
+| `L` | Light edge color |
+| `F` | Fill |
+| `H` | Light color on the top of a button |
+| `S` | Shadow under a button, shadow of paper |
 
-ゲームは、形と役目の色の組から `frameUrl` で枠の絵を作り、`installFrames` で根の要素の CSS 変数 `--frame-<名前>` に入れる。
-CSS の `.px-frame` は、`--px-frame` の枠と `--px-fill` の塗りで箱を描く。
-`.px-btn` は、さらに押したときの枠 `--px-frame-down` と、押せないときの枠 `--px-frame-disabled` を使う。
-窓の種類（ゲームの `.win` など）は、ゲームの CSS がこの変数を決めて作る。
+The game builds a frame image from a shape and colors for its roles with `frameUrl`, and puts it into the root element's CSS variable `--frame-<name>` with `installFrames`.
+The CSS class `.px-frame` draws a box with the `--px-frame` frame and the `--px-fill` fill.
+`.px-btn` also uses `--px-frame-down`, the frame while pressed, and `--px-frame-disabled`, the frame when it can't be pressed.
+Window kinds (such as the game's `.win`) are made by the game's CSS setting these variables.
 
-### 舞台
+### Stage
 
-舞台（`PixelStage`）は、決まった大きさ（ゲームが決める。たとえば横320・縦180）の点の画面である。
-キャンバスに等倍で描き、CSS で拡大する。
-拡大の倍率は、親の大きさに収まる最も大きい値を、次の規則で丸める（`fitScale`）。
+A stage (`PixelStage`) is a pixel screen of a fixed size (the game decides it, for example 320 wide and 180 tall).
+It draws on a canvas at 1x and scales it up with CSS.
+The scale is the largest value that fits in the parent, rounded by the following rules (`fitScale`).
 
-| 収まる倍率 | 丸め方 |
+| Scale that fits | Rounding |
 |---|---|
-| 2以上 | 整数に切り下げる |
-| 1以上2未満 | 0.5 刻みに切り下げる |
-| 1未満 | 縮めてよい場合は、そのままの値（下限 0.5）。縮めない場合は1 |
+| 2 or more | Round down to an integer |
+| At least 1 and under 2 | Round down to a multiple of 0.5 |
+| Under 1 | If shrinking is allowed, the value as is (minimum 0.5). Otherwise 1 |
 
-点の大きさをそろえるため、大きい倍率は整数にする。
-1未満を許すのは、スマホの縦向きの幅（約360〜430点）に、それより広い舞台を収めるためである。
-スマホの画面は1点を2〜3つの画素で描くので、1未満に縮めても点の形はほぼ崩れない。
-縮めるかどうかは、ゲームが画面の型で決める。
+Large scales are integers so that all pixels come out the same size.
+Scales under 1 are allowed so that a wider stage fits the width of a phone in portrait (about 360–430 px).
+Phone screens draw one CSS pixel with 2–3 device pixels, so pixels keep their shape almost intact even below 1x.
+The game decides whether to shrink, based on the viewport.
 
-拡大の決まり（`FitOptions`）には、ほかに次の値がある。
+The scaling options (`FitOptions`) also have the following values.
 
-| 値 | 意味 |
+| Value | Meaning |
 |---|---|
-| `gutter` | 親の大きさから引く余白（点） |
-| `max` | 倍率の上限。小さな挿絵のように、等倍より大きくしない舞台に使う |
-| `height` | 親の高さの代わりに使う高さ（点） |
+| `gutter` | Margin (px) subtracted from the parent's size |
+| `max` | The largest allowed scale. Used for stages that shouldn't grow beyond 1x, such as small illustrations |
+| `height` | Height (px) used instead of the parent's height |
 
-`height` を持つのは、縦にスクロールする画面のためである。
-そうした画面では親の高さが舞台の高さで決まるので、親の高さに合わせると、舞台が縮み続ける。
-ゲームは、画面の高さから決めた値を渡す。
+`height` exists for screens that scroll vertically.
+On such screens the stage's height sets the parent's height, so fitting to the parent's height makes the stage keep shrinking.
+The game passes a value derived from the screen's height.
 
-舞台は、`requestAnimationFrame` で毎回描く関数を呼ぶ。
-描く関数には、絵の動きの番号（既定で1秒に4こま）と、経過の秒を渡す。
-動かない舞台と、動きを減らす設定の利用者には、1度だけ描いて止める。
-描く関数は、描き直しのたびに最新のものに差し替わる。
-毎こまの描画を React の外で行い、画面の部品を毎こま作り直さないためである。
+The stage calls the draw function on every `requestAnimationFrame`.
+The draw function receives the animation frame number (4 frames per second by default) and the elapsed seconds.
+For still stages and for users who prefer reduced motion, it draws once and stops.
+Each render replaces the draw function with the latest one.
+This keeps per-frame drawing outside React, so the screen's components aren't re-rendered every frame.
 
-キャンバスの上には、DOM の層を重ねる。
-名札や印のように、文字を読ませたいものと、押させたいものを重ねるためである。
-層の中の要素は、舞台の点の座標に倍率を掛けて置く。
-根の要素の class は、倍率を受け取る関数でも渡せる。
-小さく描くときだけ名札の文字を詰める、といった切り替えに使う。
+A DOM layer sits on top of the canvas.
+It holds things people should read as text, such as name tags and markers, and things they should press.
+Elements in the layer are positioned by multiplying the stage's pixel coordinates by the scale.
+The root element's class can also be given as a function that receives the scale.
+Use it for switches such as tightening the name-tag text only when the stage is drawn small.
 
-親を覆う舞台（`PixelFill`）は、大きさを決めない舞台である。
-短い辺がおよそ決めた点の数（たとえば180）になる整数の倍率を選び、親を隙間なく覆う点の数を決める（`fillSize`）。
-はみ出しは倍率未満の画素で、親で切る。
-背景いっぱいに動く絵のように、画面の縦横の比に合わせて描く範囲を変えたい画面のためにある。
+The fill stage (`PixelFill`) is a stage without a fixed size.
+It picks the integer scale at which the shorter side is about a chosen number of pixels (for example 180), and sets its size in pixels so that it covers the parent without gaps (`fillSize`).
+It overflows the parent by fewer px than the scale, and the parent clips the overflow.
+It exists for screens that want the drawn area to follow the screen's aspect ratio, such as pictures that move across the whole background.
 
-### 会話と幕
+### Dialogue and curtain
 
-会話の窓（`Dialogue`）は、文字を1つずつ出す。
-押す・Enter・Space で、出しきる、次の行へ進む、終わる、の順に進む。
-話す人の名前と顔は、ゲームが行ごとに渡す。
-文字を出すたびと、行を送るたびに、ゲームが音を鳴らせるよう、呼び出しの口を持つ。
+The dialogue window (`Dialogue`) shows text one character at a time.
+Pressing it, Enter, or Space moves it through these steps in order: show the whole line, go to the next line, and finish.
+The game passes the speaker's name and face for each line.
+It has callbacks so the game can play a sound each time a character appears and each time a line advances.
 
-幕（`Curtain`）は、左右の幕が開く動きと、閉じる動きを持つ。
-幕の上に、ゲームが札を出せる。
+The curtain (`Curtain`) has an opening animation, in which the left and right curtains part, and a closing animation.
+The game can show a card on top of the curtain.
 
-### 音
+### Sound
 
-効果音とBGMは Web Audio で作り、音の素材を持たない。
-BGM の音色は、昔のゲーム機の音（パルス波・矩形波・三角波・雑音）を軸に、16ビットの頃に寄せる正弦波とのこぎり波を足す。
-音の動き（弾く・ふくらむ）、揺れ、左右、やまびこ、跳ねは、譜面に書く値で決める（記法は README）。
-どちらも、入り切りの設定（`createSetting`）を持ち、ブラウザーに覚えておく。
-初期の値はゲームが決める。
+SFX and BGM are synthesized with Web Audio, so there are no sound files.
+BGM voices are built around the sounds of old game consoles (pulse, square, and triangle waves, and noise), plus sine and sawtooth waves that lean toward the 16-bit era.
+Note envelopes (pluck, swell), vibrato, pan, echo, and swing are set by values written in the score (the notation is in the README).
+Both have an on/off setting (`createSetting`) that the browser remembers.
+The game decides the initial value.
 
-| 仕組み | すること |
+| Mechanism | What it does |
 |---|---|
-| `createSfx` | 音の並び（周波数、始まり、長さ、波の形、大きさ）の表から、名前で鳴らす効果音を作る。周波数0は雑音 |
-| `compile` | 小節ごとの文字列の譜面を、刻みごとの音の並びにする。DOM に触れない |
-| `createBgm` | 譜面の表から、場面ごとの曲を流す仕組みを作る。先読みの予約、山場の強さ、継ぎ目のない切り替え、タブが隠れている間の停止（止めない設定もできる）、最初の操作での再開、大きさ |
-| `cue`・`position` | 今の曲のループの終わりで次の曲に替える。今聞こえている曲と刻みを、予約した刻みの印（`StepMark`）と時刻から求める（`positionAt`）。曲を次々に流す画面と、絵を拍に合わせる画面のため |
+| `createSfx` | Builds SFX that play by name from a table of tone lists (frequency, start, length, waveform, volume). Frequency 0 is noise |
+| `compile` | Turns a score written as one string per bar into a list of notes per step. Doesn't touch the DOM |
+| `createBgm` | Builds a player that plays a track per scene from a table of scores. Lookahead scheduling, climax intensity, seamless switching, pausing while the tab is hidden (can be turned off), resuming on the first user action, and volume |
+| `cue`, `position` | Switch to the next track at the end of the current track's loop. Work out the track and step currently heard from the scheduled step markers (`StepMark`) and the time (`positionAt`). For screens that play tracks one after another and screens that sync pictures to the beat |
 
-譜面の記法は [README の音](../README.md#音)に書く。
+The score notation is in [Sound in the README](../README.md#sound).
 
-### 保存
+### Storage
 
-`createStore` は、1つのキーに JSON の値を1件置く。
-読んだ値は、ゲームが渡す検査の関数を通す。
-ない、読めない、形が合わない値は、ないものとして扱う。
-localStorage は、サイトのデータを拒む設定などで、読み書きのたびに投げることがある。
-どの関数も投げない。
-`canStore` は、このブラウザーが保存を許すかを確かめる。
+`createStore` keeps one JSON value under one key.
+Values it reads go through a check function the game provides.
+Values that are missing, unreadable, or the wrong shape are treated as missing.
+localStorage can throw on any read or write, for example when the browser is set to block site data.
+None of the functions throw.
+`canStore` checks whether this browser allows saving.
 
-### 時計
+### Clock
 
-試合の記録の再生のように、決まった数の時点を、決まった長さで再生する画面のための仕組みである。
+This is for screens that play back a fixed number of ticks over a fixed duration, such as replaying a match record.
 
-| 仕組み | すること |
+| Mechanism | What it does |
 |---|---|
-| `tickStarts` | 時点ごとの重みから、各時点の始まりの時刻を決める。重い時点はゆっくり流れる |
-| `tickAt` | 経過の時刻が、どの時点にあたるか |
-| `usePlayClock` | 経過の時刻を進める。速さを変えられ、飛ばせる |
-| `useReveal` | 項目を決まった間隔で1件ずつ出す。押すと全部出せる |
+| `tickStarts` | Sets the start time of each tick from per-tick weights. Heavier ticks pass more slowly |
+| `tickAt` | Which tick an elapsed time falls in |
+| `usePlayClock` | Advances the elapsed time. The speed can be changed, and it can be skipped |
+| `useReveal` | Shows items one at a time at a fixed interval. Pressing shows them all |
 
-## 画面の大きさと端末
+## Screen size and devices
 
-### 画面の型
+### Viewport
 
-エンジンは、画面の大きさと入力の種類から、画面の型（`Viewport`）を決める。
+The engine determines the viewport (`Viewport`) from the screen size and the kind of input.
 
-| 値 | 決め方 |
+| Value | How it is decided |
 |---|---|
-| `layout` | 横・縦がどちらも、広い画面の下限（既定で横1000・縦600）以上なら `wide`、それ以外は `stack` |
-| `orientation` | 横が縦以上なら `landscape`、それ以外は `portrait` |
-| `pointer` | 主な入力が指（CSS の `pointer: coarse`）なら `coarse`、それ以外は `fine` |
+| `layout` | `wide` if both width and height are at least the wide layout's minimum (1000 wide and 600 tall by default), otherwise `stack` |
+| `orientation` | `landscape` if the width is at least the height, otherwise `portrait` |
+| `pointer` | `coarse` if the primary input is a finger (CSS `pointer: coarse`), otherwise `fine` |
 
-`installViewport` は、根の要素（`<html>`）に `data-layout`・`data-orientation`・`data-pointer` を付け、画面の大きさが変わるたびに付け直す。
-ゲームの CSS は、この印で並べ方を変える。
-React の部品は `useViewport` で同じ値を読む。
-CSS のメディアクエリと JavaScript で別々に境目を書くと、ずれるためである。
+`installViewport` sets `data-layout`, `data-orientation`, and `data-pointer` on the root element (`<html>`), and sets them again whenever the screen size changes.
+The game's CSS switches layouts on these attributes.
+React components read the same values with `useViewport`.
+This is because writing the breakpoints separately in CSS media queries and in JavaScript lets them drift apart.
 
-端末と画面の型は、次のように対応する。
+Devices map to viewports as follows.
 
-| 端末 | 向き | 画面の型の例 |
+| Device | Orientation | Example viewport |
 |---|---|---|
-| パソコン | － | `wide`・`fine`。窓を狭めると `stack` |
-| タブレット | 横 | `wide`・`coarse` |
-| タブレット | 縦 | `stack`・`coarse` |
-| スマホ | 縦・横 | `stack`・`coarse` |
+| Desktop | – | `wide`, `fine`. `stack` when the window is narrowed |
+| Tablet | Landscape | `wide`, `coarse` |
+| Tablet | Portrait | `stack`, `coarse` |
+| Phone | Portrait, landscape | `stack`, `coarse` |
 
-### 積む画面の決まり
+### Rules for stacked screens
 
-`stack` の画面で、ゲームが守る決まりを次に挙げる。
-エンジンの CSS と部品は、この決まりを守れる形にしてある。
+These are the rules a game follows on `stack` screens.
+The engine's CSS and components are built so that these rules can be followed.
 
-- 画面を1列に積み、縦にスクロールしてよい。横にはスクロールさせない。
-- 高さは `100dvh` で測る。スマホのブラウザーの帯が出入りしても、画面がずれないためである。
-- 画面の端は、ノッチと角の丸みを避ける（`env(safe-area-inset-*)`）。
-- 主な操作のボタンは、画面の下に固定してよい。
-- 舞台は横幅に合わせ、1未満にも縮める。高さは親ではなく画面の高さから決める（[舞台](#舞台)）。
-- 画面が切り替わったら、画面の上から見せる。
+- Stack the screen in a single column; vertical scrolling is fine. Never scroll horizontally.
+- Measure height with `100dvh`, so the screen doesn't shift when the phone browser's toolbars appear and disappear.
+- Keep the screen's edges clear of notches and rounded corners (`env(safe-area-inset-*)`).
+- Main action buttons may be fixed to the bottom of the screen.
+- Fit the stage to the width, shrinking it below 1x too. Derive its height from the screen's height, not the parent's ([Stage](#stage)).
+- When the screen changes, show it from the top.
 
-### タッチ
+### Touch
 
-- 押せるものは、縦横44点以上にする。
-- マウスを載せたときだけ出す情報を作らない。`title` は補いとしてだけ使い、同じことを押したときかフォーカスしたときにも出す。
-- 押してすぐ反応させる。ボタンには `touch-action: manipulation` を付け、2回押しの拡大で待たせない。
-- 長押しやなぞりの操作を、先へ進むために求めない。
+- Make anything pressable at least 44 px wide and 44 px tall.
+- Never put information only behind a mouse hover. Use `title` only as a supplement, and show the same thing on press or focus too.
+- Respond to presses right away. Give buttons `touch-action: manipulation` so double-tap zoom doesn't add a delay.
+- Never require long presses or swipes to move forward.
 
-## 確かめ方
+## Verification
 
-| 確かめること | 方法 |
+| What to check | How |
 |---|---|
-| DOM に触れない関数 | エンジンの単体テスト（Vitest、Node） |
-| 依存の向き | エンジンの単体テスト（`src/boundary.test.ts`） |
-| 部品と画面の型 | エンジンを使うゲームの画面の通し確認（Playwright など）を、パソコン・タブレットの横と縦・スマホの縦と横の大きさで行う。エンジンの中には持たない |
-| 配れるか | `npm run build` で、`dist/` に JavaScript・型の宣言・CSS を書き出せる。`npm pack --dry-run` で、包みの中身を見る |
-| 関数ごとの複雑度 | [cccc](https://github.com/moznion/cccc) で、関数ごとの認知的複雑度と循環的複雑度が15以下かを測る。上限は `cccc.toml` に置き、テストは測らない |
+| Functions that don't touch the DOM | Engine unit tests (Vitest, Node) |
+| Dependency direction | Engine unit test (`src/boundary.test.ts`) |
+| Components and viewports | End-to-end checks of the screens of games that use the engine (Playwright or similar), at desktop, tablet landscape and portrait, and phone portrait and landscape sizes. Not kept inside the engine |
+| Publishability | `npm run build` writes JavaScript, type declarations, and CSS to `dist/`. `npm pack --dry-run` shows what goes into the package |
+| Per-function complexity | [cccc](https://github.com/moznion/cccc) checks that each function's cognitive and cyclomatic complexity is 15 or less. The limits are in `cccc.toml`, and tests aren't measured |
 
-`main` への push と pull request では、GitHub Actions で lint・型・テスト・書き出し・複雑度を通す。
-cccc は npm の包みではないので、`prepublishOnly` には入れず、CI で止める。
+On pushes to `main` and on pull requests, GitHub Actions runs lint, type checks, tests, the build, and the complexity check.
+cccc isn't an npm package, so it isn't in `prepublishOnly`; CI enforces it instead.
 
-## 配り方
+## Distribution
 
-ES モジュールだけを配る。
-`package.json` の `exports` は、`dist/` の JavaScript・型の宣言・CSS を指す。
-`dist/` は Git に入れず、`npm pack`・`npm publish`・GitHub からの `npm install` の前に `prepare` で書き出す。
-npm にまだ配っていない変更を使いたいゲームが、コミットを指して入れられるようにするためである。
-`npm publish` の前には、`prepublishOnly` で lint・型・テストを通す。
-包みに入れるのは `dist/`・`docs/`・`README.md`・`LICENSE` で、ソースの TypeScript とテストは入れない。
-エンジンの開発に要る依存（TypeScript、Vitest、Biome、型の宣言、React）は `devDependencies` に書く。
-React は `peerDependencies` に書き、React の部品を使わないゲームのために任意とする。
-ライセンスは MIT とする。
+Only ES modules are shipped.
+The `exports` in `package.json` point to the JavaScript, type declarations, and CSS in `dist/`.
+`dist/` isn't committed to Git; `prepare` writes it before `npm pack`, `npm publish`, and `npm install` from GitHub.
+This lets games that want changes not yet published to npm install the engine by pointing at a commit.
+Before `npm publish`, `prepublishOnly` runs lint, type checks, and tests.
+The package contains `dist/`, `docs/`, `README.md`, and `LICENSE`, but not the TypeScript sources or tests.
+Dependencies needed to develop the engine (TypeScript, Vitest, Biome, type declarations, React) are listed in `devDependencies`.
+React is listed in `peerDependencies` and marked optional, for games that don't use the React components.
+The license is MIT.
 
-## 未決定事項
+## Open questions
 
-- 版の付け方。
+- How to number versions.

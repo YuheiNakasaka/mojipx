@@ -1,4 +1,4 @@
-// React のフック（docs/design.md#持つもの）。画面の型、入り切りの設定、BGM、時計、読み上げ、こまの番号。
+// React のフック（docs/design.md#features）。画面の型、入り切りの設定、BGM、時計、読み上げ、こまの番号。
 // 時計と読み上げは、動きを減らす設定の利用者には、はじめから最後の状態を返す。
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Bgm } from '../audio/bgm.ts';

@@ -1,4 +1,4 @@
-// 効果音（docs/design.md#音）。Web Audio の矩形波と雑音で作り、音の素材は持たない。
+// 効果音（docs/design.md#sound）。Web Audio の矩形波と雑音で作り、音の素材は持たない。
 // 音の並びの表はゲームが渡す。入り切りは設定（setting.ts）で持ち、切ってあるときは鳴らさない。
 import type { Setting } from '../setting.ts';
 import { audioContext, noiseOf } from './context.ts';

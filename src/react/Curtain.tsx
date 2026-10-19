@@ -1,4 +1,4 @@
-// 幕（docs/design.md#会話と幕）。opening は閉じた幕が開き、closing は幕が閉じる。children は幕の上に出す札。
+// 幕（docs/design.md#dialogue-and-curtain）。opening は閉じた幕が開き、closing は幕が閉じる。children は幕の上に出す札。
 // 動きの長さは styles.css の .px-curtain と合わせる。動きを減らす設定の利用者には、すぐ終える。
 import { type ReactNode, useEffect, useRef } from 'react';
 import { prefersReducedMotion } from '../motion.ts';

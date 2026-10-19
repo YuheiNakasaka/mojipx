@@ -1,4 +1,4 @@
-// キャンバスに描く道具（docs/design.md#持つもの）。座標は舞台の点で、描く位置は整数に丸め、点の縁をそろえる。
+// キャンバスに描く道具（docs/design.md#features）。座標は舞台の点で、描く位置は整数に丸め、点の縁をそろえる。
 // 絵の画像は raster.ts の canvasOf が作る。
 import { canvasOf } from './raster.ts';
 import { type Palette, type Recolor, type Sprite, sizeOf } from './sprite.ts';

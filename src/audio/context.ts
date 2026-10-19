@@ -1,4 +1,4 @@
-// 音を鳴らす AudioContext と、雑音の素（docs/design.md#音）。効果音と BGM が1つを分け合う。
+// 音を鳴らす AudioContext と、雑音の素（docs/design.md#sound）。効果音と BGM が1つを分け合う。
 
 let ctx: AudioContext | null = null;
 

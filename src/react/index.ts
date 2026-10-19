@@ -1,4 +1,4 @@
-// ./react の入口（docs/design.md#持つもの）。React の部品とフックを出す。
+// ./react の入口（docs/design.md#features）。React の部品とフックを出す。
 
 export { CURTAIN_MS, Curtain } from './Curtain.tsx';
 export { Dialogue, type DialogueLine } from './Dialogue.tsx';

@@ -1,4 +1,4 @@
-// 音1つの大きさの動き（docs/design.md#音）の、値の計算。DOM と Web Audio には触れない。
+// 音1つの大きさの動き（docs/design.md#sound）の、値の計算。DOM と Web Audio には触れない。
 
 /** 'hold' は伸ばす間少しずつ弱める（既定）、'pluck' は弾いた弦や木琴のようにすぐ減る、'swell' はゆっくりふくらむ。 */
 export type Envelope = 'hold' | 'pluck' | 'swell';

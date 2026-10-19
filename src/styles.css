@@ -1,6 +1,6 @@
-/* エンジンの CSS（docs/design.md#持つもの）。ゲームの CSS より先に読み込む。
+/* エンジンの CSS（docs/design.md#features）。ゲームの CSS より先に読み込む。
    ここは並べ方と動きだけを決め、色・文字・余白はゲームの CSS が決める。
-   枠の絵は installFrames が --frame-* に入れ、ゲームの CSS が --px-frame・--px-fill に割り当てる（docs/design.md#窓の枠）。 */
+   枠の絵は installFrames が --frame-* に入れ、ゲームの CSS が --px-frame・--px-fill に割り当てる（docs/design.md#window-frames）。 */
 
 /* ---- 土台 ---- */
 

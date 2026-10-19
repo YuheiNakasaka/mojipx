@@ -1,4 +1,4 @@
-// 舞台（docs/design.md#舞台）。決まった大きさの点の画面をキャンバスに等倍で描き、親の大きさに合わせて CSS で拡大する。
+// 舞台（docs/design.md#stage）。決まった大きさの点の画面をキャンバスに等倍で描き、親の大きさに合わせて CSS で拡大する。
 // 毎こまの描画は React の外で行い、描く関数は描き直しのたびに最新のものに差し替わる。上には DOM の層を重ねる。
 // PixelFill は、大きさを決めずに親を覆う舞台で、点の数を親の大きさから決める。
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';

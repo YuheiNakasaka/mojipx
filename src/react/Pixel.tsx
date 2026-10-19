@@ -1,4 +1,4 @@
-// ドット絵の部品（docs/design.md#ドット絵）。絵を SVG の矩形で描く。配色は PaletteProvider から読む。
+// ドット絵の部品（docs/design.md#pixel-art）。絵を SVG の矩形で描く。配色は PaletteProvider から読む。
 import { createContext, type ReactNode, useContext, useMemo } from 'react';
 import { type Palette, type Recolor, runsOf, type Sprite, sizeOf } from '../sprite.ts';
 

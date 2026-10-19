@@ -1,4 +1,4 @@
-// 会話の窓（docs/design.md#会話と幕）。文字を1つずつ出し、押す・Enter・Space で、出しきる・次の行へ・終わる、と進む。
+// 会話の窓（docs/design.md#dialogue-and-curtain）。文字を1つずつ出し、押す・Enter・Space で、出しきる・次の行へ・終わる、と進む。
 // 話す人の名前と顔は、ゲームが行ごとに渡す。行の位置は持ち越さない。開き直すと最初の行から出す。
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { prefersReducedMotion } from '../motion.ts';

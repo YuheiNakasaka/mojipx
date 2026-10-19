@@ -3,7 +3,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-// 依存の向き（docs/design.md#境界）。エンジンのファイルは、エンジンの外のファイルを読まない。
+// 依存の向き（docs/design.md#boundary）。エンジンのファイルは、エンジンの外のファイルを読まない。
 // 読んでよい外のパッケージは、React と、テストのための Vitest と Node の標準の部品だけとする。
 const SRC = dirname(fileURLToPath(import.meta.url));
 const ALLOWED = [/^react$/, /^react\/jsx-runtime$/, /^vitest$/, /^node:/];

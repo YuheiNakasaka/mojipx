@@ -1,4 +1,4 @@
-// 入り切りの設定（docs/design.md#音）。BGM や効果音の入り切りを、ブラウザーに 'on'・'off' の文字で覚えておく。
+// 入り切りの設定（docs/design.md#sound）。BGM や効果音の入り切りを、ブラウザーに 'on'・'off' の文字で覚えておく。
 // 読めない環境では、初めの値のまま動く。React の画面は ./react の入口の useSetting で読む。
 import type { StorageSource } from './storage.ts';
 
