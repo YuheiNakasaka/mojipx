@@ -86,6 +86,16 @@ html {
   position: absolute;
   animation: px-bob 0.6s steps(2) infinite;
 }
+/* キーで進められることの印。ポインターが細かい端末（マウスの PC）だけに出す */
+.px-dialog-keys {
+  position: absolute;
+  display: none;
+}
+@media (pointer: fine) {
+  .px-dialog-keys {
+    display: inline;
+  }
+}
 
 /* ---- 幕 ---- */
 

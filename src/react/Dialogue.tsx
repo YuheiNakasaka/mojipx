@@ -1,7 +1,36 @@
-// 会話の窓（docs/design.md#dialogue-and-curtain）。文字を1つずつ出し、押す・Enter・Space で、出しきる・次の行へ・終わる、と進む。
+// 会話の窓（docs/design.md#dialogue-and-curtain）。文字を1つずつ出し、押す・→・Enter・Space で、出しきる・次の行へ・終わる、と進む。
+// キーは焦点に依らず文書全体で受け、窓が2つ出ているときは最後に出た窓だけが受ける。受けたキーは preventDefault し、
+// 焦点のあるボタンが同じ押下で押されないようにする。窓の要素自身ではキーを受けない（文書で受けるので、二重に進む）。
 // 話す人の名前と顔は、ゲームが行ごとに渡す。行の位置は持ち越さない。開き直すと最初の行から出す。
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { advancesDialogue, createWindowStack, isEditable, type KeyTarget } from '../keys.ts';
 import { prefersReducedMotion } from '../motion.ts';
+
+const WINDOWS = createWindowStack();
+
+/** 会話の窓が出ているか。ゲームが自分のキー（次へ・選択肢の番号など）を、会話の間は受けないようにするのに使う。 */
+export const dialogueOpen = (): boolean => WINDOWS.top() !== null;
+
+/** 窓が出ている間、文書全体の → ・Enter・Space で onKey を呼ぶ。最後に出た窓だけが受ける。 */
+function useDialogueKeys(onKey: () => void): void {
+  const handler = useRef(onKey);
+  handler.current = onKey;
+  useEffect(() => {
+    const id = WINDOWS.open();
+    const listen = (e: KeyboardEvent) => {
+      if (WINDOWS.top() !== id) return;
+      const press = { key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey, repeat: e.repeat };
+      if (!advancesDialogue({ ...press, editable: isEditable(e.target as KeyTarget) })) return;
+      e.preventDefault();
+      handler.current();
+    };
+    document.addEventListener('keydown', listen);
+    return () => {
+      document.removeEventListener('keydown', listen);
+      WINDOWS.close(id);
+    };
+  }, []);
+}
 
 export type DialogueLine = {
   readonly text: string;
@@ -74,22 +103,18 @@ export function Dialogue({
       onNext?.();
     } else onDone();
   };
+  useDialogueKeys(next);
   if (!line) return null;
   return (
     // biome-ignore lint/a11y/useSemanticElements: 会話の窓は大きな押せる領域で、中に見出しと文を持つ
+    // biome-ignore lint/a11y/useKeyWithClickEvents: キーは焦点に依らず文書全体で受ける（useDialogueKeys）。窓でも受けると二重に進む
     <div
       ref={box}
       className={className ? `px-dialog ${className}` : 'px-dialog'}
       role="button"
       tabIndex={0}
-      aria-label={`${label}。${line.name ? `${line.name}「${line.text}」` : line.text}。押すと次へ`}
+      aria-label={`${label}。${line.name ? `${line.name}「${line.text}」` : line.text}。押すか、→・Enter・Space で次へ`}
       onClick={next}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          next();
-        }
-      }}
       data-testid={testId}
     >
       {line.face !== undefined && <div className="px-dialog-face">{line.face}</div>}
@@ -99,6 +124,9 @@ export function Dialogue({
       </div>
       <span className="px-dialog-count">
         {index + 1}／{lines.length}
+      </span>
+      <span className="px-dialog-keys" aria-hidden="true">
+        → / Enter
       </span>
       {!typing && <span className="px-dialog-more">▼</span>}
     </div>

@@ -140,9 +140,21 @@ It exists for screens that want the drawn area to follow the screen's aspect rat
 ### Dialogue and curtain
 
 The dialogue window (`Dialogue`) shows text one character at a time.
-Pressing it, Enter, or Space moves it through these steps in order: show the whole line, go to the next line, and finish.
+Pressing it, →, Enter, or Space moves it through these steps in order: show the whole line, go to the next line, and finish.
 The game passes the speaker's name and face for each line.
 It has callbacks so the game can play a sound each time a character appears and each time a line advances.
+
+While a window is shown, it takes →, Enter, and Space from the whole document, so the keys keep working after the player presses another button and focus moves away.
+These rules decide which presses it takes (`advancesDialogue` in `keys.ts`, which doesn't touch the DOM):
+
+- It ignores presses in fields where people type text (input, textarea, select, and contenteditable elements; `isEditable`).
+- It ignores presses with Ctrl, Cmd, or Alt held, so browser shortcuts keep working.
+- It ignores repeats from a held key, so one press moves one step.
+- When two windows are shown, only the last one shown takes keys.
+- It cancels the default action of the keys it takes, so a focused button isn't pressed by the same press. The window element doesn't handle keys itself, so a press on the window moves it only once.
+
+`dialogueOpen` tells the game whether a window is shown, so the game can ignore its own keys (next, choice numbers) during dialogue.
+On devices with a fine pointer (PCs with a mouse), the window shows a small "→ / Enter" mark (`px-dialog-keys`); the game positions it.
 
 The curtain (`Curtain`) has an opening animation, in which the left and right curtains part, and a closing animation.
 The game can show a card on top of the curtain.
@@ -233,7 +245,7 @@ The engine's CSS and components are built so that these rules can be followed.
 
 | What to check | How |
 |---|---|
-| Functions that don't touch the DOM | Engine unit tests (Vitest, Node) |
+| Functions that don't touch the DOM | Engine unit tests (Vitest, Node). For components, the decisions are split into such functions (which keys advance a dialogue) and tested here |
 | Dependency direction | Engine unit test (`src/boundary.test.ts`) |
 | Components and viewports | End-to-end checks of the screens of games that use the engine (Playwright or similar), at desktop, tablet landscape and portrait, and phone portrait and landscape sizes. Not kept inside the engine |
 | Publishability | `npm run build` writes JavaScript, type declarations, and CSS to `dist/`. `npm pack --dry-run` shows what goes into the package |

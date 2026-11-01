@@ -24,8 +24,8 @@ The type declarations can be read by TypeScript 5.0 or later.
 
 | Entry point | Contents |
 |---|---|
-| `mojipx` | Sprites, colors, frames, drawing tools, stage scaling math, viewport, storage, settings, clocks, and sound. Does not depend on React |
-| `mojipx/react` | The `Pixel`, `PixelStage`, `Dialogue`, and `Curtain` components, and the `useViewport`, `useSetting`, `useBgm`, `usePlayClock`, `useReveal`, `useCountUp`, and `useBeat` hooks |
+| `mojipx` | Sprites, colors, frames, drawing tools, stage scaling math, viewport, storage, settings, clocks, sound, and the rules for which keys advance dialogue. Does not depend on React |
+| `mojipx/react` | The `Pixel`, `PixelStage`, `Dialogue`, and `Curtain` components, the `dialogueOpen` function, and the `useViewport`, `useSetting`, `useBgm`, `usePlayClock`, `useReveal`, `useCountUp`, and `useBeat` hooks |
 | `mojipx/styles.css` | CSS for frames, buttons, dialogue, curtains, and stages. Load it before the game's CSS |
 
 ## Usage

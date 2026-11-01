@@ -39,6 +39,7 @@ export {
 } from './draw.ts';
 export { type FillSize, type FitOptions, fillSize, fitScale, SHRINK_MIN } from './fit.ts';
 export { FRAME_SHAPES, type FrameColors, type FrameRole, type FrameShape, frameUrl, installFrames } from './frame.ts';
+export { advancesDialogue, DIALOGUE_KEYS, isEditable, type KeyPress, type KeyTarget } from './keys.ts';
 export { prefersReducedMotion } from './motion.ts';
 export { canvasOf } from './raster.ts';
 export { createSetting, type Setting } from './setting.ts';
