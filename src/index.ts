@@ -1,8 +1,9 @@
 // パッケージの入口（docs/design.md#features）。React に依らない仕組みを出す。React の部品は ./react の入口にある。
 
-export { type Bgm, type BgmOptions, createBgm } from './audio/bgm.ts';
+export { type Bgm, type BgmOptions, type BgmRequest, type BgmRequestOptions, createBgm } from './audio/bgm.ts';
 export { audioContext, noiseOf, onFirstGesture } from './audio/context.ts';
 export type { Envelope } from './audio/envelope.ts';
+export type { Intensity } from './audio/requests.ts';
 export {
   audible,
   type Channel,

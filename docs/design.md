@@ -173,6 +173,7 @@ The game decides the initial value.
 | `compile` | Turns a score written as one string per bar into a list of notes per step. Doesn't touch the DOM |
 | `createBgm` | Builds a player that plays a track per scene from a table of scores. Lookahead scheduling, climax intensity, seamless switching, pausing while the tab is hidden (can be turned off), resuming on the first user action, and volume |
 | `cue`, `position` | Switch to the next track at the end of the current track's loop. Work out the track and step currently heard from the scheduled step markers (`StepMark`) and the time (`positionAt`). For screens that play tracks one after another and screens that sync pictures to the beat |
+| `request`, `useBgm` | Let screens stacked on top of other screens ask for their own track. Each request has a priority; the player plays the newest request at the highest priority, and goes back to the track below when a request is withdrawn. A request for `null` keeps the music stopped while it is on top. Climax intensity belongs to each request, so the track below comes back with its own intensity. `want`, `cue`, and `release` drive a single request at priority 0. The choice of track is made by functions that don't touch Web Audio (`requests.ts`), and the engine unit tests check them |
 
 The score notation is in [Sound in the README](../README.md#sound).
 

@@ -2,10 +2,25 @@
 // 曲の表と入り切りの設定はゲームが渡す。
 // 先読みの予約（setInterval で数十ミリ秒ごとに、少し先までの音を予約する）で、ループの継ぎ目を空けない。
 // 画面は流したい曲を want で伝える。cue で伝えた曲には、今の曲のループの終わりで継ぎ目なく替える。
+// 画面の上に画面を重ねるときは、優先度を付けて request で頼む。いちばん高い優先度の、いちばん新しい頼みの曲を流し、
+// 頼みを外すと下の頼みの曲に戻す。山場の強さは頼みごとに持つ（requests.ts）。
 // タブが隠れている間は、既定では止める。
 import type { Setting } from '../setting.ts';
 import { audioContext, noiseOf, onFirstGesture } from './context.ts';
 import { decayCurve, type Envelope, PLUCK_TAU_SEC, swellAttackOf, swingShift, vibratoDepthHz } from './envelope.ts';
+import {
+  cued,
+  cueOf,
+  handedOver,
+  type Intensity,
+  released,
+  requested,
+  type TrackRequest,
+  topRequest,
+  wanted,
+  withdrawn,
+  withIntensity,
+} from './requests.ts';
 import { audible, type Compiled, compile, type Drum, frequencyOf, type NoteEvent, type Score, stepSecOf, type Voice } from './score.ts';
 import { advanceStep, type BgmPosition, positionAt, recentMarks, type StepMark } from './transport.ts';
 
@@ -16,19 +31,46 @@ export type BgmOptions = {
   readonly pauseWhenHidden?: boolean;
 };
 
+/** request の選び方。 */
+export type BgmRequestOptions = {
+  /** 優先度。上に重ねる画面ほど大きくし、いちばん高い優先度の頼みの曲を流す。既定は0。 */
+  readonly priority?: number;
+  /** この頼みの山場の強さ。既定は0。 */
+  readonly intensity?: Intensity;
+};
+
+/** request で足した頼み。 */
+export type BgmRequest = {
+  /** この頼みの山場の強さを変える。上に無い間も強さは残り、上に戻ったときに効く。 */
+  readonly setIntensity: (level: Intensity) => void;
+  /** 頼みを外す。上にあった頼みなら、下の頼みの曲に戻す。 */
+  readonly release: () => void;
+};
+
 export type Bgm<Track extends string> = {
   /** 入り切りの設定。 */
   readonly setting: Setting;
   /** 入り切りを変える。押した操作の中で呼ぶ（ブラウザーが音を許すのは、利用者の操作の中だけのため）。 */
   readonly setOn: (next: boolean) => void;
-  /** この画面で流す曲を伝える。null なら止める。同じ曲なら頭から流し直さない。違う曲なら、すぐに替える。 */
+  /**
+   * 流す曲を伝える（優先度0の、じかの頼み）。null なら止める。同じ曲なら頭から流し直さない。違う曲なら、すぐに替える。
+   * request で上に重ねた頼みがあれば、それが外れてから流す。
+   */
   readonly want: (track: Track | null) => void;
   /** 今の曲のループが終わったところで、track に継ぎ目なく替える。曲を流していなければ want と同じ。 */
   readonly cue: (track: Track) => void;
-  /** 画面が閉じたときに呼ぶ。その画面の曲を流していたら止める。 */
+  /** 画面が閉じたときに呼ぶ。want で伝えた曲が track なら止める。 */
   readonly release: (track: Track | null) => void;
-  /** 山場の強さ。1 にすると、山場の層が鳴り、山場の速さの曲は速くなる。曲を替えると0に戻る。 */
-  readonly setIntensity: (level: 0 | 1) => void;
+  /**
+   * 曲を頼む。いちばん高い優先度（priority）の、いちばん新しい頼みの曲を流し、頼みを外すと下の頼みの曲に戻す。
+   * track が null の頼みは、上にある間は止める。画面の上に画面を重ねるときに使う。
+   */
+  readonly request: (track: Track | null, options?: BgmRequestOptions) => BgmRequest;
+  /**
+   * いま上にある頼みの山場の強さ。1 にすると、山場の層が鳴り、山場の速さの曲は速くなる。
+   * 強さは頼みに残り、上に重ねた頼みが外れて戻ると当て直す。want で違う曲にすると0に戻る。
+   */
+  readonly setIntensity: (level: Intensity) => void;
   /** 大きさ（0〜1）。master に掛ける。既定は1。 */
   readonly setVolume: (volume: number) => void;
   /** 今聞こえている曲と位置。音の出口の遅れを差し引く。曲を流していなければ null。画面を音に合わせて動かすのに使う。 */
@@ -277,9 +319,15 @@ export function createBgm<Track extends string>(
     compiled.set(track, c);
     return c;
   };
-  let desired: Track | null = null;
-  let cued: Track | null = null;
-  let intense = false;
+  let requests: readonly TrackRequest<Track>[] = [];
+  let lastId = 0;
+  const newId = (): number => {
+    lastId += 1;
+    return lastId;
+  };
+  /** 流す曲（上の頼みの曲）と、山場か */
+  const desired = (): Track | null => topRequest(requests)?.track ?? null;
+  const peak = (): boolean => topRequest(requests)?.intensity === 1;
   let volume = 1;
   let player: Player<Track> | null = null;
   let marks: readonly StepMark<Track>[] = [];
@@ -313,10 +361,12 @@ export function createBgm<Track extends string>(
     while (p.next < until) {
       const c = compiledOf(p.track);
       // ループの頭に着いたところで、待っている曲に替える
-      if (cued !== null && p.loop > 0 && p.step === c.loopStart) {
-        handOver(ac, p, cued);
+      const next = cueOf(requests, p.track);
+      if (next !== null && p.loop > 0 && p.step === c.loopStart) {
+        handOver(ac, p, next);
         return;
       }
+      const intense = peak();
       const sec = stepSec(p.track, intense);
       playStep(ac, p.bus, p.track, p.step, p.next, intense);
       marks = [...recentMarks(marks, ac.currentTime, MARK_KEEP_SEC), { track: p.track, step: p.step, loop: p.loop, at: p.next, sec }];
@@ -362,9 +412,7 @@ export function createBgm<Track extends string>(
     // 古い曲で伸ばしている音は、継ぎ目のあと少しで消す
     old.bus.gain.setTargetAtTime(0, at, 0.05);
     window.setTimeout(() => old.bus.disconnect(), (at - ac.currentTime + 1) * 1000);
-    cued = null;
-    desired = track;
-    intense = false;
+    requests = handedOver(requests, track);
     player = startPlayer(ac, track, at);
   };
 
@@ -372,13 +420,10 @@ export function createBgm<Track extends string>(
   const apply = (): void => {
     try {
       const on = setting.get() && typeof document !== 'undefined' && !(pauseWhenHidden && document.hidden);
-      const want = on ? desired : null;
+      const want = on ? desired() : null;
       if (player?.track === want) return;
       const ac = audioContext(false);
-      if (player) {
-        stopPlayer(ac, player);
-        intense = false; // 曲を離れたら、山場の強さを戻す
-      }
+      if (player) stopPlayer(ac, player);
       player = null;
       if (want === null) {
         marks = [];
@@ -420,28 +465,34 @@ export function createBgm<Track extends string>(
       apply();
     },
     want: (track) => {
-      desired = track;
-      cued = null;
+      requests = wanted(requests, newId(), track);
       queueApply();
     },
     cue: (track) => {
-      if (player && player.track === desired) {
-        cued = track === player.track ? null : track;
-        return;
-      }
-      desired = track;
-      cued = null;
+      requests = cued(requests, newId(), track, player?.track ?? null);
       queueApply();
     },
     release: (track) => {
-      if (desired === track) {
-        desired = null;
-        cued = null;
-      }
+      requests = released(requests, track);
       queueApply();
     },
+    request: (track, options = {}) => {
+      const id = newId();
+      requests = requested(requests, id, track, options.priority ?? 0, options.intensity ?? 0);
+      queueApply();
+      return {
+        setIntensity: (level) => {
+          requests = withIntensity(requests, id, level);
+        },
+        release: () => {
+          requests = withdrawn(requests, id);
+          queueApply();
+        },
+      };
+    },
     setIntensity: (level) => {
-      intense = level === 1;
+      const top = topRequest(requests);
+      if (top) requests = withIntensity(requests, top.id, level);
     },
     setVolume: (next) => {
       volume = Math.min(1, Math.max(0, next));

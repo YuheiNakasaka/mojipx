@@ -144,6 +144,11 @@ sfx.play('select');
 
 In a screen, tell it which track to play with `useBgm(bgm, 'title')`, and read whether music is on with `useSetting(bgm.setting)`.
 
+A screen opened on top of another screen (a pop-up, say) can ask for its own track at a higher priority with `useBgm(bgm, 'popup', { priority: 1 })`.
+The newest request at the highest priority plays; when that screen closes, the music goes back to the track of the screen below.
+`useBgm(bgm, null)` keeps the music stopped while that screen is on top.
+Outside React, `bgm.request(track, { priority })` returns a request with `release()` and `setIntensity(level)`.
+
 On screens that play tracks one after another, queue the next track with `bgm.cue('next')`. It switches seamlessly when the current track's loop ends.
 `bgm.position()` returns the track currently heard, the step, the number of loops completed, and how far into the step it is. Use it to move pictures in time with the beat.
 `bgm.setVolume(0.5)` changes the volume.
@@ -154,7 +159,8 @@ Scores are written as one string per bar. One step is an eighth note when `steps
 
 - For melody, chords, and bass, each space-separated word is one step. `C5`, `F#4`, and `Bb3` are pitches, `E4+G4` is a chord, `-` holds the previous note, and `.` is a rest.
 - For drums, each character is one step. `k` is the kick, `s` the snare, `h` the hi-hat, `H` two hi-hats (at the start and middle of the step), `x` the kick and hi-hat, `z` the snare and hi-hat, `o` the open hi-hat, `t` the tom, and `.` a rest.
-- `layer` set to `calm` plays only while things are calm, `intense` only at the climax (`bgm.setIntensity(1)`), and `both` all the time.
+- `layer` set to `calm` plays only while things are calm, `intense` only at the climax (`bgm.setIntensity(1)`, or `useBgm(bgm, track, { intensity: 1 })`), and `both` all the time.
+  The intensity belongs to the request: `bgm.setIntensity` changes the request currently on top, and when a stacked request is withdrawn, the track below comes back with its own intensity. Switching to another track with `want` resets it to 0.
 
 Choose the voice (`voice`) from `pulse` (25% pulse wave), `pulse12` (12.5%), `square`, `triangle`, `sine`, and `saw`.
 Channels can also have the following values.

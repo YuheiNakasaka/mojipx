@@ -1,7 +1,7 @@
 // React のフック（docs/design.md#features）。画面の型、入り切りの設定、BGM、時計、読み上げ、こまの番号。
 // 時計と読み上げは、動きを減らす設定の利用者には、はじめから最後の状態を返す。
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import type { Bgm } from '../audio/bgm.ts';
+import type { Bgm, BgmRequest, BgmRequestOptions } from '../audio/bgm.ts';
 import { prefersReducedMotion } from '../motion.ts';
 import type { Setting } from '../setting.ts';
 import { currentViewport, type Viewport, watchViewport } from '../viewport.ts';
@@ -16,12 +16,28 @@ export function useSetting(setting: Setting): boolean {
   return useSyncExternalStore(setting.subscribe, setting.get, setting.get);
 }
 
-/** この画面で流す曲。null なら止める。画面が閉じたら、その曲を止める。 */
-export function useBgm<Track extends string>(bgm: Bgm<Track>, track: Track | null): void {
+/**
+ * この画面で流す曲を頼む（bgm.request）。null なら、この画面が上にある間は止める。画面が閉じたら頼みを外し、下に重ねた画面の曲に戻す。
+ * priority は優先度で、画面の上に開く画面は大きくする。intensity を渡すと、この頼みの山場の強さにする。
+ * 渡さなければ強さには触れない（bgm.setIntensity で、いま上にある頼みの強さを変えられる）。
+ */
+export function useBgm<Track extends string>(bgm: Bgm<Track>, track: Track | null, options: BgmRequestOptions = {}): void {
+  const { priority = 0, intensity } = options;
+  const request = useRef<BgmRequest | null>(null);
+  // 曲や優先度が替わって頼み直すときも、今の強さで頼む
+  const latest = useRef(intensity);
+  latest.current = intensity;
   useEffect(() => {
-    bgm.want(track);
-    return () => bgm.release(track);
-  }, [bgm, track]);
+    const r = bgm.request(track, { priority, intensity: latest.current });
+    request.current = r;
+    return () => {
+      r.release();
+      request.current = null;
+    };
+  }, [bgm, track, priority]);
+  useEffect(() => {
+    if (intensity !== undefined) request.current?.setIntensity(intensity);
+  }, [intensity]);
 }
 
 /**
