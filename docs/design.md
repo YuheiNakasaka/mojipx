@@ -143,6 +143,8 @@ The dialogue window (`Dialogue`) shows text one character at a time.
 Pressing it, →, Enter, or Space moves it through these steps in order: show the whole line, go to the next line, and finish.
 The game passes the speaker's name and face for each line.
 It has callbacks so the game can play a sound each time a character appears and each time a line advances.
+The window's own words, the label read by screen readers and the line count (such as 1／5), come from `wording` (`DialogueWording` in `dialogue.ts`, which doesn't touch the DOM).
+The default is Japanese (`DIALOGUE_JA`); a game played in English passes `DIALOGUE_EN`.
 
 While a window is shown, it takes →, Enter, and Space from the whole document, so the keys keep working after the player presses another button and focus moves away.
 These rules decide which presses it takes (`advancesDialogue` in `keys.ts`, which doesn't touch the DOM):

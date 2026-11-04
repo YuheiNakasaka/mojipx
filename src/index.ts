@@ -25,6 +25,7 @@ export {
 export { createSfx, type Sfx, type Tone } from './audio/sfx.ts';
 export { advanceStep, type BgmPosition, positionAt, recentMarks, type StepMark } from './audio/transport.ts';
 export { mixColor, tintedPalette } from './color.ts';
+export { DIALOGUE_EN, DIALOGUE_JA, type DialogueWording } from './dialogue.ts';
 export {
   type Ctx,
   drawSprite,

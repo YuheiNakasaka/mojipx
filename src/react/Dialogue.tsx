@@ -3,6 +3,7 @@
 // 焦点のあるボタンが同じ押下で押されないようにする。窓の要素自身ではキーを受けない（文書で受けるので、二重に進む）。
 // 話す人の名前と顔は、ゲームが行ごとに渡す。行の位置は持ち越さない。開き直すと最初の行から出す。
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { DIALOGUE_JA, type DialogueWording } from '../dialogue.ts';
 import { advancesDialogue, createWindowStack, isEditable, type KeyTarget } from '../keys.ts';
 import { prefersReducedMotion } from '../motion.ts';
 
@@ -51,6 +52,7 @@ export function Dialogue({
   delayMs = 0,
   onType,
   onNext,
+  wording = DIALOGUE_JA,
   className,
   testId,
 }: {
@@ -64,6 +66,8 @@ export function Dialogue({
   onType?: (n: number) => void;
   /** 次の行へ送ったときに呼ぶ。 */
   onNext?: () => void;
+  /** 読み上げの文と、何行目かの書き方。既定は日本語（DIALOGUE_JA）。 */
+  wording?: DialogueWording;
   className?: string;
   testId?: string;
 }) {
@@ -113,7 +117,7 @@ export function Dialogue({
       className={className ? `px-dialog ${className}` : 'px-dialog'}
       role="button"
       tabIndex={0}
-      aria-label={`${label}。${line.name ? `${line.name}「${line.text}」` : line.text}。押すか、→・Enter・Space で次へ`}
+      aria-label={wording.ariaLabel(label, line.text, line.name)}
       onClick={next}
       data-testid={testId}
     >
@@ -122,9 +126,7 @@ export function Dialogue({
         {line.name && <span className="px-dialog-name">{line.name}</span>}
         <p className={line.narration ? 'px-dialog-text is-narration' : 'px-dialog-text'}>{chars.slice(0, shown).join('')}</p>
       </div>
-      <span className="px-dialog-count">
-        {index + 1}／{lines.length}
-      </span>
+      <span className="px-dialog-count">{wording.count(index + 1, lines.length)}</span>
       <span className="px-dialog-keys" aria-hidden="true">
         → / Enter
       </span>
